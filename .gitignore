@@ -1,0 +1,49 @@
+# Instrucoes locais do Claude Code: nao versionar
+CLAUDE.md
+CLAUDE.local.md
+.claude/
+
+# Segredos: nunca versionar
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+secrets/
+credentials*
+*credentials*.json
+*.secret
+*.secrets
+kettle.properties
+.kettle/
+
+# Postman: ambientes com chave preenchida
+*.postman_environment.json.local
+postman_environment*.local.json
+
+# Dados gerados (contêm nomes de viajantes; regenerar com os scripts)
+2-Scripts/saidas/
+*.log
+*.dump
+*.bak
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Editor / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Airflow local
+3-Etl/logs/
+3-Etl/airflow.db
+3-Etl/airflow.cfg

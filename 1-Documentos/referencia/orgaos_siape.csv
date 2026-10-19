@@ -1,0 +1,642 @@
+﻿codigo;descricao
+00001;IGNORADO - CONVERSAO DO SIPEFAZ
+00005;Exc - Empresa Privada
+00006;Exc - Empresas Públicas / CLT
+00008;Exc - Entidades em Extinção / L.80
+00009;Exc - Estados / Municípios / Outros
+00010;Exc - Estatais do Ministério dos Transportes e Comunicação
+00011;Exc - Estatais do Ministério da Fazenda
+00012;Exc - Estatais do Ministério de Minas e Energia
+00016;Exc - Justiça do Distrito Federal e Territórios
+00017;Exc - Justiça do Trabalho
+00018;Exc - Justiça Eleitoral
+00019;Exc - Justiça Federal
+00020;Exc - Justiça Militar
+00025;Exc - Região Centro Oeste
+00026;Exc - Região Nordeste
+00027;Exc - Região Norte
+00028;Exc - Região Sudeste
+00029;Exc - Região Sul
+00030;Exc - República Federativa do Brasil
+00031;Exc - Reserva de Contingência
+00101;Superior Tribunal de Justiça
+00102;Fundação Assefaz
+00151;Ministério do Trabalho e Previdência Social
+00153;Empresa Brasileira de Telecomunicacoes S.A.
+00157;Governo do Estado do Maranhão
+00159;Prefeitura Municipal de Três Pontas - MG
+00160;Assembléia Legislativa - Minas Gerais
+00161;Prefeitura Municipal de Blumenau - SC
+00162;Tribunal Regional Eleitoral - BA
+00163;Tribunal Regional Eleitoral - MT
+00164;Tribunal Regional Eleitoral - GO
+00165;Tribunal Regional Eleitoral - RS
+00166;Tribunal Regional Eleitoral - SP
+00167;Tribunal Regional Eleitoral - RO
+00168;Tribunal Regional Eleitoral - SC
+00169;TRIBUNAL REGIONAL ELEITORAL DE RORAIMA
+04000;Tribunal Superior do Trabalho
+10000;Supremo Tribunal Federal
+11000;Presidência da República
+11104;Estado-Maior das Forças Armadas
+11106;Secretaria do Planejamento e Coordenação Geral
+11110;Hospital das Forças Armadas
+12000;Ministério da Aeronáutica
+12001;Justiça Federal - Seção Judiciária de Sergipe
+12002;Justiça Federal - Amapá
+13000;Ministério da Agricultura, Pecuária e Abastecimento
+13100;MIN DO DESENV AGR E AGRIC FAMILIAR
+13200;MINISTERIO DA PESCA E AQUICULTURA
+13208;Departamento Nacional de Obras e Saneamento
+13209;Departamento Nacional de Obras Contra as Secas
+13300;MINISTERIO DA AGRICULTURA E PECUARIA
+14000;Ministério da Infraestrutura - MC
+15000;Ministério da Educação
+16000;Comando do Exército
+16100;Fundação Osório
+17000;Ministério da Economia
+17100;CONSELHO NACIONAL DE JUSTICA
+17200;MINISTERIO DOS POVOS INDIGENAS
+17201;Superintendência Nacional de Abastecimento
+17300;MINISTERIO DO PLANEJAMENTO E ORCAMENTO
+17400;MIN DESENVOLV IND COMERCIO E SERVICOS
+17500;MIN GESTAO E INOV EM SERV PUBLICOS
+17600;MINISTERIO DA FAZENDA
+17700;MIN EMPREEND MICROEMP EMP PEQUENO PORTE
+17800;INST NAC DE TECN DA INFORMACAO
+19000;Ministério do Interior
+20000;Ministério da Justiça e Segurança Pública
+20101;Presidência da República
+20102;Vice Presidência da República
+20103;Secretaria da Administração Federal da Presidência da República
+20104;Secretaria Especial de Assuntos Estratégicos
+20106;Consultoria-Geral da União
+20108;Secretaria de Ciência e Tecnologia
+20109;Secretaria de Desenvolvimento Regional
+20111;Secretaria do Meio Ambiente
+20112;Secretaria de Projetos Especiais
+20113;Ministério do Planejamento, Desenvolvimento e Gestão
+20114;Agência Brasileira de Inteligência
+20115;Departamento de Polícia Federal
+20116;Advocacia-Geral da União/Piauí
+20117;Departamento de Imprensa Nacional
+20125;Controladoria-Geral da União
+20224;Agência Nacional do Cinema
+20302;Nuclebrás Equipamentos Pesados
+20304;Indústrias Nucleares do Brasil
+20404;Biblioteca Nacional
+20410;Fundação Nacional Pró-Leitura
+20411;Instituto Brasileiro do Patrimônio Cultural
+20415;Empresa Brasil de Comunicação
+20502;Financiadora de Estudos e Projetos
+20605;Companhia de Desenvolvimento de Barcarena
+20924;Fundo Nacional de Desenvolvimento
+21000;Comando da Aeronáutica
+21201;Caixa de Financiamento Imobiliário da Aeronáutica
+21203;Secretaria de Economia, Finanças e Administração da Aeronáutica
+21300;Agência Espacial Brasileira
+22000;Ministério da Infraestrutura - MME
+22107;Ministério da Infraestrutura - CNP
+22108;Ministério da Infraestrutura - DNAE
+22109;Ministério da Infraestrutura - DNPM
+22200;Companhia Nacional de Abastecimento
+22202;Empresa Brasileira de Pesquisa Agropecuária
+22203;Companhia de Desenvolvimento dos Vales do São Francisco e do Parnaíba
+22207;Companhia de Colonização do Nordeste
+23000;Ministério da Previdência Social
+23203;Fundação Projeto Rondon
+23804;Fundo de Previdência e Assistência Social
+23902;Fundo de Custeio de Programas de Habitação Popular
+24000;Ministério das Relações Exteriores
+24100;TELEBRAS - TELECOM. BRASILEIRAS S.A.
+24203;Fundação Nacional de Artes
+24204;Instituto do Patrimônio Histórico e Artístico Nacional
+24205;Fundação Biblioteca Nacional
+24206;Fundação Nacional de Artes Cênicas
+24207;Fundação do Cinema Brasileiro
+24209;Centro Nacional de Tecnologia Eletrônica Avançada S.A.
+25000;Ministério da Saúde
+25201;Banco Central do Brasil
+25202;CONS. DE CONTROLE DE ATIV. FINANCEIRAS
+25207;Serviço Federal de Processamento de Dados
+25211;Casa da Moeda do Brasil
+25220;Caixa Econômica Federal
+25281;Banco do Brasil S.A.
+25282;Banco do Nordeste do Brasil
+25801;Secretaria da Receita Federal do Brasil
+25823;Banco do Estado de Goias S.A.
+25901;Fundo de Compensação de Variações Salariais
+25902;Fundo de Investimentos do Nordeste
+25903;Fundo de Investimentos da Amazônia
+25904;Fundo de Estabilidade do Seguro Rural
+25905;Fundo de Apoio ao Desenvolvimento Social
+26000;Ministério do Trabalho e Emprego
+26104;Instituto Nacional de Educação de Surdos
+26105;Instituto Benjamin Constant
+26106;Fundo Nacional de Desenvolvimento da Educação
+26107;Instituto Nacional de Estudos e Pesquisas Educacionais
+26201;Colégio Pedro II
+26202;Centro Federal de Educação Tecnológica de Alagoas
+26203;Centro Federal de Educação Tecnológica do Amazonas
+26204;Centro Federal de Educação Tecnológica da Bahia
+26205;Centro Federal de Educação Tecnológica de Campos
+26206;Centro Federal de Educação Tecnológica do Ceará
+26207;Centro Federal de Educação Tecnológica do Espírito Santo
+26208;Centro Federal de Educação Tecnológica de Goiás
+26209;Centro Federal de Educação Tecnológica do Maranhão
+26210;Centro Federal de Educação Tecnológica de Mato Grosso
+26211;Centro Federal de Educação Tecnológica de Ouro Preto
+26212;Centro Federal de Educação Tecnológica do Pará
+26213;Centro Federal de Educação Tecnológica da Paraíba
+26214;Centro Federal de Educação Tecnológica de Pelotas
+26215;Centro Federal de Educação Tecnológica de Pernambuco
+26216;Centro Federal de Educação Tecnológica do Piauí
+26217;Centro Federal de Educação Tecnológica de Química
+26218;Centro Federal de Educação Tecnológica do Rio Grande do Norte
+26219;Centro Federal de Educação Tecnológica de Santa Catarina
+26220;Centro Federal de Educação Tecnológica de São Paulo
+26221;Centro Federal de Educação Tecnológica de Sergipe
+26222;Centro Federal de Educação Tecnológica de Roraima
+26223;Escola Técnica Federal de Palmas
+26227;Escola Técnica Federal de Rondônia
+26230;Universidade Federal do Vale do São Francisco
+26231;Universidade Federal de Alagoas
+26232;Universidade Federal da Bahia
+26233;Universidade Federal do Ceará
+26234;Universidade Federal do Espírito Santo
+26235;Universidade Federal de Goiás
+26236;Universidade Federal Fluminense - RJ
+26237;Universidade Federal de Juiz de Fora - MG
+26238;Universidade Federal de Minas Gerais
+26239;Universidade Federal do Pará
+26240;Universidade Federal da Paraíba
+26241;Universidade Federal do Paraná
+26242;Universidade Federal de Pernambuco
+26243;Universidade Federal do Rio Grande do Norte
+26244;Universidade Federal do Rio Grande do Sul
+26245;Universidade Federal do Rio de Janeiro
+26246;Universidade Federal de Santa Catarina
+26247;Universidade Federal de Santa Maria - RS
+26248;Universidade Federal Rural de Pernambuco
+26249;Universidade Federal Rural do Rio de Janeiro
+26250;Universidade Federal de Roraima
+26251;Fundação Universidade Federal do Tocantins
+26252;Universidade Federal de Campina Grande - PB
+26253;Universidade Federal Rural da Amazônia
+26254;Universidade Federal do Triângulo Mineiro
+26255;Universidade Federal dos Vales do Jequitinhonha e Mucuri
+26256;Centro Federal de Educação Tecnológica Celso Suckow da Fonseca
+26257;Centro Federal de Educação Tecnológica de Minas Gerais
+26258;Universidade Tecnológica Federal do Paraná
+26259;Centro de Educação Tecnológica da Bahia
+26260;Universidade Federal de Alfenas - MG
+26261;Universidade Federal de Itajubá - MG
+26262;Universidade Federal de São Paulo
+26263;Universidade Federal de Lavras - MG
+26264;Universidade Federal Rural do Semi-Árido - RN
+26266;Fundação Universidade Federal do Pampa
+26267;Universidade Federal da Integração Latino-Americana
+26268;Fundação Universidade Federal de Rondônia
+26269;Universidade Federal do Estado do Rio de Janeiro
+26270;Fundação Universidade Federal do Amazonas
+26271;Fundação Universidade de Brasília
+26272;Fundação Universidade Federal do Maranhão
+26273;Universidade Federal do Rio Grande - RS
+26274;Fundação Universidade Federal Uberlândia
+26275;Universidade Federal do Acre
+26276;Universidade Federal de Mato Grosso
+26277;Fundação Universidade Federal de Ouro Preto
+26278;Fundação Universidade Federal de Pelotas
+26279;Universidade Federal do Piauí
+26280;Universidade Federal de São Carlos - SP
+26281;Fundação Universidade Federal de Sergipe
+26282;Universidade Federal de Viçosa - MG
+26283;Universidade Federal de Mato Grosso do Sul
+26284;Universidade Federal de Ciências da Saúde de Porto Alegre
+26285;Fundação Universidade Federal de São João del-Rei
+26286;Fundação Universidade Federal do Amapá
+26287;Escola Agrotécnica Federal de Marabá
+26288;Escola Agrotécnica Federal de Nova Andradina
+26289;Escola Agrotécnica Federal de São Raimundo das Mangabeiras
+26292;Fundação Joaquim Nabuco
+26293;Fundação Roquette Pinto
+26295;Instituto Nacional de Desenvolvimento do Desporto
+26296;Fundação Educar
+26297;Fundação de Assistência ao Estudante
+26298;Fundação Coordenação de Aperfeiçoamento de Pessoal de Nível Superior
+26300;Escola Agrotécnica Federal de Satuba
+26301;Escola Agrotécnica Federal de Manaus
+26302;Escola Agrotécnica Federal de Catu
+26303;Escola Agrotécnica Federal do Crato
+26304;Escola Agrotécnica Federal de Iguatu
+26305;Escola Agrotécnica Federal de Alegre
+26306;Centro Federal de Educação Tecnológica de Rio Verde
+26307;Escola Agrotécnica Federal de São Luís
+26308;Centro Federal de Educação Tecnológica de Bambuí
+26309;Escola Agrotécnica Federal de Barbacena
+26310;Centro Federal de Educação Tecnológica de Januária
+26311;Escola Agrotécnica Federal de Muzambinho
+26312;Centro Federal de Educação Tecnológica de Rio Pomba
+26313;Centro Federal de Educação Tecnológica de Uberaba
+26314;Escola Agrotécnica Federal de Uberlândia
+26315;Escola Agrotécnica Federal de Castanhal
+26316;Escola Agrotécnica Federal de Sousa
+26317;Escola Agrotécnica Federal de Barreiros
+26318;Escola Agrotécnica Federal de Belo Jardim
+26319;Escola Agrotécnica Federal de Vitória de Santo Antão
+26320;Escola Agrotécnica Federal de São Cristóvão
+26321;Centro Federal de Educação Tecnológica de Bento Gonçalves
+26322;Escola Agrotécnica Federal de Concórdia
+26323;Escola Agrotécnica Federal de Sertão
+26324;Escola Agrotécnica Federal de Colatina
+26325;Centro Federal de Educação Tecnológica de Urutaí
+26326;Centro Federal de Educação Tecnológica de Cuiabá
+26327;Escola Agrotécnica Federal de Inconfidentes
+26328;Escola Agrotécnica Federal de Machado
+26329;Escola Agrotécnica Federal de Salinas
+26330;Escola Agrotécnica Federal de São João Evangelista
+26331;Escola Agrotécnica Federal de Araguatins
+26332;Escola Agrotécnica Federal de Cáceres
+26333;Escola Agrotécnica Federal de Alegrete
+26335;Escola Agrotécnica Federal de Santa Teresa
+26336;Centro Federal de Educação Tecnológica de Petrolina
+26337;Escola Agrotécnica Federal de Ceres
+26338;Centro Federal de Educação Tecnológica de São Vicente do Sul
+26339;Escola Agrotécnica Federal de Colorado do Oeste
+26340;Escola Agrotécnica Federal de São Gabriel da Cachoeira
+26341;Escola Agrotécnica Federal de Sombrio
+26342;Escola Agrotécnica Federal de Rio do Sul
+26343;Escola Agrotécnica Fed Antônio José Teixeira
+26344;Escola Agrotécnica Federal de Santa Inês
+26345;Escola Agrotécnica Federal de Codó
+26346;Escola Agrotécnica Federal de Senhor do Bonfim
+26350;Fundação Universidade Federal da Grande Dourados
+26351;Universidade Federal do Recôncavo da Bahia
+26352;Fundação Universidade Federal do ABC
+26353;Escola Técnica Federal de Rondônia
+26354;Escola Técnica Federal do Amapá
+26355;Escola Técnica Federal de Mato Grosso do Sul
+26356;Instituto Federal de Brasília
+26357;Escola Técnica Federal de Canoas
+26401;Instituto Federal do Acre
+26402;Instituto Federal de Alagoas
+26403;Instituto Federal do Amazonas
+26404;Instituto Federal Baiano
+26405;Instituto Federal do Ceará
+26406;Instituto Federal do Espírito Santo
+26407;Instituto Federal Goiano
+26408;Instituto Federal do Maranhão
+26409;Instituto Federal de Minas Gerais
+26410;Instituto Federal do Norte de Minas Gerais
+26411;Instituto Federal do Sudeste de Minas Gerais
+26412;Instituto Federal do Sul de Minas Gerais
+26413;Instituto Federal do Triângulo Mineiro
+26414;Instituto Federal de Mato Grosso
+26415;Instituto Federal de Mato Grosso do Sul
+26416;Instituto Federal do Pará
+26417;Instituto Federal da Paraíba
+26418;Instituto Federal de Pernambuco
+26419;Instituto Federal do Rio Grande do Sul
+26420;Instituto Federal Farroupilha
+26421;Instituto Federal de Rondônia
+26422;Instituto Federal Catarinense
+26423;Instituto Federal de Sergipe
+26424;Instituto Federal do Tocantins
+26426;Instituto Federal do Amapá
+26427;Instituto Federal da Bahia
+26428;Instituto Federal de Brasília
+26429;Instituto Federal de Goiás
+26430;Instituto Federal do Sertão Pernambucano
+26431;Instituto Federal do Piauí
+26432;Instituto Federal do Paraná
+26433;Instituto Federal do Rio de Janeiro
+26434;Instituto Federal Fluminense
+26435;Instituto Federal do Rio Grande do Norte
+26436;Instituto Federal Sul-rio-grandense
+26437;Instituto Federal de Roraima
+26438;Instituto Federal de Santa Catarina
+26439;Instituto Federal de São Paulo
+26440;Universidade Federal da Fronteira Sul
+26441;Universidade Federal do Oeste do Pará
+26442;Universidade da Integração Internacional da Lusofonia Afro-Brasileira
+26443;Empresa Brasileira de Serviços Hospitalares
+26447;Universidade Federal do Oeste da Bahia
+26448;Universidade Federal do Sul e Sudeste do Pará
+26449;Universidade Federal do Cariri - CE
+26450;Universidade Federal do Sul da Bahia
+26452;UNIVERSIDADE FEDERAL DE CATALAO
+26453;UNIVERSIDADE FEDERAL DE JATAI
+26454;UNIVERSIDADE FEDERAL DE RONDONOPOLIS
+26455;UNIV. FEDERAL DO DELTA DO PARNAIBA
+26456;UNIVER. FEDERAL DO AGRESTE DE PERNAMBUCO
+26457;UNIVERSIDADE FEDERAL NORTE DO TOCANTINS
+27000;Ministério da Infraestrutura - MT
+27100;Secretaria de Economia e Finanças do Exército Brasileiro
+27201;Fundação Habitacional do Exército
+27202;Departamento Nacional de Estradas de Rodagem
+28000;Ministério da Indústria, Comércio Exterior e Serviços
+28001;Ministério da Indústria, do Comércio e do Turismo
+29000;Ministério do Esporte
+29202;Superintendência do Desenvolvimento do Centro-Oeste
+29203;Empresa Brasileira de Planejamento de Transportes
+29205;Empresa de Trens Urbanos de Porto Alegre S.A.
+29214;Companhia Brasileira de Trens Urbanos
+30000;Ministério do Trabalho e Previdência Social
+30102;Imprensa Nacional
+30202;Fundação Nacional do Índio
+30203;Instituto Nacional de Metrologia, Qualidade e Tecnologia
+30204;Instituto Nacional da Propriedade Industrial
+30212;AGENCIA NACIONAL DE PROTECAO DE DADOS
+30802;Departamento de Polícia Rodoviária Federal
+31000;Ministério da Economia, Fazenda e Planejamento
+31202;Instituto do Açúcar e do Álcool
+31203;Instituto Brasileiro do Café
+31280;Caixa de Construções de Casas para o Pessoal da Marinha
+32000;Ministério de Minas e Energia
+32100;Departamento Nacional de Produção Mineral
+32200;Agência Nacional de Energia Elétrica
+32201;Centro de Pesquisas de Energia Elétrica
+32300;Agência Nacional do Petróleo, Gás Natural e Biocombustíveis
+32314;Empresa de Pesquisa Energética
+32396;Agência Nacional de Mineração
+33000;MINISTERIO DO TRABALHO E PREVIDENCIA
+33100;MINISTERIO DA PREVIDENCIA SOCIAL
+33200;MINISTERIO DO TRABALHO E EMPREGO
+33206;Superintendência Nacional de Previdência Complementar
+34000;Secretaria da Cultura
+34003;Ministerio Público do Espírito Santo
+34004;Ministério Público do Estado do Amapá
+35000;Ministério das Relações Exteriores
+35001;APEX-BRASIL
+35201;Fundação Alexandre Gusmão
+36102;Fundação Nacional de Saúde
+36103;Central de Medicamentos
+36201;Fundação Oswaldo Cruz
+36203;Instituto Nacional de Alimentação e Nutrição
+36204;Fundação das Pioneiras Sociais
+36205;Fundação Nacional de Saúde
+36206;Extinto Instituto Nacional de Assistência Médica da Previdência Social
+36207;Agência Nacional de Vigilância Sanitária
+36208;Agência Nacional de Saúde Suplementar
+36209;Hospital Fêmina
+36210;Hospital Nossa Senhora da Conceição
+36211;Hospital Cristo Redentor
+37000;Defensoria Pública da União
+38000;Conselho Administrativo de Defesa Econômica
+38299;Rede Ferroviária Federal S.A.
+39250;Agência Nacional de Transportes Terrestres
+39251;Agência Nacional de Transportes Aquaviários
+39252;Departamento Nacional de Infraestrutura de Transportes
+39253;Empresa de Planejamento e Logística S.A.
+40000;Central de Atendimento  - Secretaria de Administração Federal - Diretoria de Recursos Humanos
+40100;MIN DA INTEG E DO DESENV REGIONAL
+40103;Ministério da Administração Federal e Reforma do Estado - em extinção
+40105;Ministério da Defesa
+40106;Advocacia-Geral da União
+40107;Ministério da Cultura
+40108;Ministério da Ciência, Tecnologia, Inovações e Comunicações
+40109;Extinto Ministério da Integração Nacional
+40110;Secretaria de Desportos
+40111;Ministério do Meio Ambiente
+40112;Ministério do Desenvolvimento Regional
+40115;MINISTERIO DA DEFESA
+40116;ADVOCACIA-GERAL DA UNIAO
+40200;MINISTERIO DAS CIDADES
+40202;Função Escola Nacional de Administração Pública
+40211;MINISTERIO DO MEIO AMBIENTE
+40301;Comissão Nacional de Energia Nuclear
+40403;Fundação Casa de Rui Barbosa
+40408;Fundação Cultural Palmares
+40413;FUNDACAO CASA DE RUI BARBOSA
+40501;Conselho Nacional de Desenvolvimento Científico e Tecnológico
+40503;Fundação Centro Tecnológico para Informática
+40601;Superintendência do Desenvolvimento do Nordeste
+40602;Superintendência do Desenvolvimento da Amazônia
+40603;Superintendência da Zona Franca de Manaus
+40604;Instituto Brasileiro de Turismo
+40701;Instituto Brasileiro do Meio Ambiente e Recursos Naturais Renováveis
+40801;Governo do Ex-Território Federal do Amapá
+40802;Governo do Ex-Território Federal do Acre
+40803;Governo do Ex-Território Federal de Rondônia
+40804;Governo do Ex-Território Federal de Roraima
+40805;Antigos Estados da Guanabara e Distrito Federal
+40806;DEP.DE CENTRAL.SERV.DE INATIVOS E PENS.
+41000;Ministério das Comunicações
+41100;MINISTERIO DAS COMUNICACOES
+41200;Radiobras Empresa Brasileira de Comunicação S.A.
+41231;Agência Nacional de Telecomunicações
+42000;Ministério do Desenvolvimento Agrário
+42102;Comissão Executiva do Plano da Lavoura Cacaueira
+42201;Instituto Nacional de Colonização e Reforma Agrária
+42204;Departamento Nacional de Obras Contra as Secas
+42207;Instituto Brasileiro de Museus
+43000;Extinto Ministério do Bem-Estar Social
+43201;Extinta Fundação Centro Brasileiro para a Infância e Adolescência
+43202;Extinta Fundação Legião Brasileira de Assistência
+44205;Agência Nacional de Águas
+44206;Instituto de Pesquisas Jardim Botânico do Rio de Janeiro
+44207;Instituto Chico Mendes de Conservação da Biodiversidade
+45203;Comissão de Valores Mobiliários
+45205;Fundação Instituto Brasileiro de Geografia e Estatística
+45206;Instituto de Pesquisa Econômica Aplicada
+45208;Superintendência de Seguros Privados
+45282;Banco Nacional de Desenvolvimento Econômico e Social
+45283;Instituto de Resseguros do Brasil
+46000;Ministério de Ciência e Tecnologia
+49000;Ministério da Infraestrutura
+49100;MINISTERIO DE PORTOS E AEROPORTOS
+49200;MINISTERIO DOS TRANSPORTES
+49201;Departamento Nacional de Estradas de Rodagem
+49280;Empresa Brasileira de Correios e Telégrafos
+49300;VALEC Engenharia, Construções e Ferrovias S.A.
+49901;Fundo da Marinha Mercante
+51000;Autoridade de Governança do Legado Olímpico
+52201;Agência Nacional de Aviação Civil
+52233;Amazônia Azul Tecnologias de Defesa S.A.
+53202;Superintendência do Desenvolvimento da Amazônia
+53203;Superintendência do Desenvolvimento do Nordeste
+53205;Agência de Desenvolvimento da Amazônia
+53206;Agência de Desenvolvimento do Nordeste
+53297;Superintendência do Desenvolvimento do Centro-Oeste
+54000;Ministério do Turismo
+54100;MINISTERIO DA CULTURA
+55000;Ministério do Desenvolvimento Social
+55100;MIN DESENV ASSIS SOCI FAMIL COMBATE FOME
+55200;MINISTERIO DO ESPORTE
+56000;Ministério das Cidades
+57201;Fundação Jorge Duprat Figueiredo, de Segurança e Medicina do Trabalho
+57202;Instituto Nacional do Seguro Social
+57203;Empresa de Processamento de Dados da Previdência Social
+58000;Ministério da Pesca e Aquicultura
+59000;Controladoria-Geral da União
+70000;Comando da Marinha
+70101;Ministério da Marinha II
+70102;Tribunal Marítimo
+77000;Fundação de Previdência Complementar do Servidor Público Federal
+80101;Instituto de Previdência Social do Servidor Público
+80202;Superintendência do Desenvolvimento da Região Sul
+80203;Departamento Nacional de Obras e Saneamento
+80204;Instituto do Açúcar e do Álcool
+80208;Empresa de Portos do Brasil S.A.
+80210;Empresa de Assistência Técnica e Extensão Rural
+81000;Ministério da Mulher, Família e Direitos Humanos
+81100;MIN DOS DIR HUM E DA CIDADANIA
+81200;MINISTERIO DAS MULHERES
+81300;MINISTERIO DA IGUALDADE RACIAL
+90000;Tribunal de Contas da União
+90100;Ministério Público Federal
+90150;Ministério Público da União
+90200;Ministério Público do Trabalho
+90300;Ministério Público Militar
+90400;Ministério Público do Distrito Federal e Territórios
+91081;Eletrobras - Centrais Elétricas Brasileiras S.A - Holding
+91082;Telebras- Holding
+91083;Companhia Vale do Rio Doce - Holding
+91084;Petrobras - Holding
+91214;Autoridade Pública Olímpica
+92012;Empresa Gerencial de Projetos Navais
+93120;Governo do Estado do Acre
+93220;Governo do Estado do Amapá
+93320;Governo do Estado do Amazonas
+93420;Governo do Estado do Pará
+93520;Governo do Estado de Rondônia
+93620;Governo do Estado de Roraima
+93720;Governo do Estado do Tocantins
+94220;Governo do Estado do Piauí
+94320;Governo do Estado do Ceará
+94420;Governo do Estado do Rio Grande do Norte
+94520;Governo do Estado da Paraíba
+94620;Governo do Estado de Pernambuco
+94720;Governo do Estado de Alagoas
+94820;Governo do Estado de Sergipe
+94920;Governo do Estado da Bahia
+95120;Governo do Estado de Minas Gerais
+95220;Governo do Estado Espírito Santo
+95320;Governo do Estado do Rio de Janeiro
+95420;Governo do Estado de São Paulo
+96120;Governo do Estado do Paraná
+96220;Governo do Estado de Santa Catarina
+96320;Governo do Estado do Rio Grande do Sul
+97120;Governo do Estado do Mato Grosso do Sul
+97220;Governo do estado de Mato Grosso
+97320;Governo do Estado de Goiás
+97400;Governo do Distrito Federal
+97401;Câmara Legislativa do Distrito Federal
+98000;Órgão Central do SIPEC - Sistema de Pessoal Civil da Administração Federal
+99000;Tribunal Regional Eleitoral - MG
+99001;Tribunal Regional do Trabalho MG
+99002;Tribunal Regional Eleitoral - RJ
+99003;Tribunal Regional do Trabalho - DF
+99004;Procuradoria-Geral da República
+99005;Prefeitura Municipal de Jaboticatubas - MG
+99006;Companhia Nordestina de Sondas e Perfurações
+99007;Companhia de Navegação do São Francisco
+99008;Serviço de Navegação da Bacia do Prata
+99009;Empresa Navegação Amazônia
+99010;Companhia de Pesquisa de Recursos Minerais
+99011;Empresa Brasileira de Infraestrutura Aeroportuária
+99012;Tribunal Regional Eleitoral - MS
+99013;Hospital de Clínicas de Porto Alegre
+99014;Indústria de Material Bélico do Brasil
+99015;Câmara dos Deputados
+99016;Senado Federal
+99017;Tribunal Regional Eleitoral - PR
+99018;Tribunal Regional Eleitoral - ES
+99019;Tribunal Regional Eleitoral - SE
+99020;Tribunal Regional Eleitoral - RN
+99021;Tribunal Regional Eleitoral - PB
+99022;Tribunal Regional Eleitoral - PI
+99023;Tribunal Regional Eleitoral - AC
+99024;Tribunal Regional Eleitoral - AL
+99025;Tribunal Regional Eleitoral - AM
+99026;Tribunal Regional Eleitoral - CE
+99027;Tribunal Regional Eleitoral - MA
+99028;Tribunal Regional Federal
+99029;Tribunal Regional Eleitoral - PA
+99030;Tribunal Regional Eleitoral - PE
+99032;Tribunal Regional Eleitoral - DF
+99033;Prefeitura Municipal de Porto Velho - RO
+99034;Tribunal Regional Federal da 1ª Região - DF
+99035;Prefeitura Municipal de Mundo Novo - MS
+99036;Prefeitura Municipal de Aracaju - SE
+99037;Prefeitura do Município de Maringá - PR
+99038;Prefeitura de Baía Formosa - RN
+99039;Prefeitura Municipal de Altos - PI
+99040;Prefeitura Municipal de Fortaleza - CE
+99041;Assembléia Legislativa - Ceará
+99042;Tribunal Regional do Trabalho - MS
+99043;Prefeitura Municipal de Cachoeiro de Itapemirim - ES
+99044;Tribunal de Justiça do Estado de Rondônia
+99045;Prefeitura Municipal de Vitória - ES
+99046;Prefeitura Municipal de Bauru - SP
+99047;Tribunal Superior Eleitoral
+99048;Tribunal de Justiça do Distrito Federal e dos Territórios
+99049;Tribunal Regional do Trabalho da 15ª Região
+99050;Tribunal Regional do Trabalho - AL
+99051;Prefeitura Municipal de Cacoal - RO
+99052;Tribunal Regional do Trabalho - MT
+99053;Tribunal Regional Federal da 5ª Região - PE
+99054;Prefeitura Municipal
+99056;Prefeitura Municipal de Niquelandia - GO
+99057;Telecomunicações de Brasília S.A.
+99058;Companhia Docas do Estado de São Paulo
+99059;Centrais Eletricas do Norte do Brasil S.A.
+99060;Companhia Energética de Brasília
+99061;Companhia Docas do Rio de Janeiro
+99062;Companhia das Docas do Estado da Bahia
+99063;Administração de Portos de Manaus
+99064;Câmara Municipal de Macaé
+99065;Coordenadoria das Empresas Incorporadas ao Patrimônio Nacional
+99066;Tribunal Regional do Trabalho - ES
+99067;Prefeitura Municipal de Pratapolis - MG
+99068;Prefeitura Municipal de Recife - PE
+99069;Tribunal Regional Federal da 3ª Região - SP
+99070;Tribunal Regional do Trabalho - BA
+99071;Assembléia Legislativa - Pernambuco
+99072;Governo do Distrito Federal
+99073;Governo do Distrito Federal
+99074;Governo do Distrito Federal
+99075;Governo do Distrito Federal / PCDF
+99080;Tribunal de Alçada do Estado de Minas Gerais
+99100;Tribunal Regional do Trabalho da 3ª Região
+99101;Associação de Comunicação Educativa Roquette Pinto
+99131;PREFEITURA DE SAO PAULO/SP
+99132;Prefeitura de São Luís - MA
+99133;Tribunal de Justiça
+99172;POLICIA MILITAR DO DISTRITO FEDERAL
+99272;POLICIA CIVIL DO DISTRITO FEDERAL
+99300;Companhia de Geração Térmica de Energia Elétrica
+99372;CORPO DE BOMBEIROS MILITAR DO DIST FED
+99607;Assembléia Legislativa - Rio de Janeiro
+99901;Conselho da Justiça Federal
+99904;Justiça Eleitoral
+99905;Tribunal Regional do Trabalho
+99990;Estados / Municípios / Administração Direta Autárquica e Fundacional
+99991;Estados / Municípios / Empresas
+99992;Justiça Federal
+99993;Empresas Públicas / CLT
+BC023;Governo do Distrito Federal
+BC024;Ministério do Trabalho e Previdência Social
+BC030;Companhia Brasileira de Trens Urbanos
+BC037;Governo do Estado de Pernambuco - PE
+BC038;Fundação Banco Central de Previdência Privada
+BC045;Superintendência Nacional de Previdência Complementar
+BC049;Prefeitura Municipal de Campinas - SP
+BC051;Prefeitura Municipal de São Paulo - SP
+BC052;Prefeitura Municipal de Curitiba - PR
+BC057;Fundação de Previdência Complementar do Servidor Público Federal
+BC058;Prefeitura Municipal do Rio de Janeiro - RJ
+BC060;Companhia Municipal de Limpeza Urbana - Rio de Janeiro
+BC061;Ministério dos Direitos Humanos
+BC063;MINISTERIO DA ECONOMIA
+BC064;MINISTERIO DA CIDADANIA
+BC065;UNIDADE DE INTELIGENCIA FINANCEIRA
+BC066;FUND. INST. BRASIL. GEOG. E ESTATISTICA
+BC067;MIN.DA MULHER, DA FAMILIA E DOS DIREITOS
+BC068;CONSELHO CONTROLE ADTIVIDADES FINANCEIRA
+BC069;PREFEITURA MUNICIPAL DE BELEM
+BC071;MIN.DA GESTAO E INOVACAO EM SERV.PUBLICO
+BC072;MIN.DA INTEGRACAO SOCIAL E DES. REGIONAL
+BC997;Ministério da Educação e do Desporto
+BC998;Telecomunicações Brasileiras S.A.
+BC999;BNDES Participações S.A.
