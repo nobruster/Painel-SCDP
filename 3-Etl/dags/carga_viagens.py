@@ -4,6 +4,8 @@ import psycopg2
 from psycopg2.extras import execute_values, Json
 
 ## bruno
+## bruno
+## bruno
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
