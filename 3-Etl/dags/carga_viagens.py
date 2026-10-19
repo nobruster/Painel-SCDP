@@ -3,6 +3,8 @@ import requests
 import psycopg2
 from psycopg2.extras import execute_values, Json
 
+## bruno
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 MESES_RETORNO_APOS_IDA = 12
