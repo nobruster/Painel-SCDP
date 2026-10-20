@@ -125,3 +125,19 @@ def test_configuracao_das_dags():
     assert "skip_on_exit_code" not in completa, "a completa nao pode ser pulada: falha e o retry tenta de novo"
     assert 'schedule="0 2 * * *"' in diaria
     assert 'schedule="30 3 1,11,21 * *"' in completa
+
+
+def test_comando_de_reconciliacao_aponta_para_o_script_que_existe():
+    from scdp.dag_util import comando_reconciliacao
+    cmd = comando_reconciliacao()
+    assert "-I" in cmd and "${PAINEL_SCDP_HOME:-/opt/repos/Painel-SCDP}/2-Scripts/verificar_reconciliacao.py" in cmd
+    assert (DAGS.parent.parent / "2-Scripts" / "verificar_reconciliacao.py").is_file()
+
+
+@pytest.mark.parametrize("arquivo,tarefa", [("dag_carga_diaria.py", "carga_diaria"), ("dag_carga_completa.py", "carga_completa")])
+def test_reconciliacao_roda_depois_da_carga_e_sem_retry(arquivo, tarefa):
+    texto = (DAGS / arquivo).read_text(encoding="utf-8")
+    assert 'task_id="reconciliar"' in texto and "comando_reconciliacao()" in texto
+    assert "carga >> reconciliar" in texto, f"a reconciliacao precisa vir depois de {tarefa}"
+    bloco = texto[texto.index('task_id="reconciliar"'):]
+    assert "retries=0" in bloco, "divergencia nao se resolve repetindo a consulta"

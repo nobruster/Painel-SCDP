@@ -11,7 +11,7 @@ import pendulum
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 
-from scdp.dag_util import comando_carga
+from scdp.dag_util import comando_carga, comando_reconciliacao
 
 FUSO = "America/Sao_Paulo"
 
@@ -25,8 +25,15 @@ with DAG(
     default_args={"owner": "dados", "retries": 1, "retry_delay": timedelta(minutes=15)},
     tags=["scdp", "viagens"],
 ) as dag:
-    BashOperator(
+    carga = BashOperator(
         task_id="carga_completa",
         bash_command=comando_carga("--modo", "completo", "--desde", "2025-01"),
         execution_timeout=timedelta(hours=10),
     )
+    reconciliar = BashOperator(
+        task_id="reconciliar",
+        bash_command=comando_reconciliacao(),
+        retries=0,
+        execution_timeout=timedelta(minutes=10),
+    )
+    carga >> reconciliar
