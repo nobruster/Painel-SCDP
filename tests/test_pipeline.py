@@ -63,6 +63,24 @@ def test_falha_permanente_fica_registrada_e_a_execucao_termina_com_erros(banco, 
     assert banco.cur.fetchall() == [("api", 1 + cfg.rodadas_retentativa, NOV)]
 
 
+def test_erro_permanente_da_janela_nao_entra_nas_rodadas_de_retentativa(banco):
+    def resposta(ida, ret, n):
+        return ErroPermanente(404, "nao encontrado") if (ida, ret) == (NOV, NOV) else resposta_base(ida, ret)
+
+    extrator = FakeExtrator(resposta)
+    assert banco.pipeline(extrator).executar("diario", DESDE, HOJE) == 1
+    assert extrator.chamadas[(NOV, NOV)] == 1
+    assert execucao(banco.cur)[0:3] == ("COM_ERROS", JANELAS_PLANEJADAS, 1)
+    banco.cur.execute("SELECT etapa, codigo, tentativas FROM @STG@.ctl_erro")
+    assert banco.cur.fetchall() == [("api", "404", 1)]
+
+
+def test_chave_bloqueada_403_tambem_aborta(banco):
+    pipe = banco.pipeline(FakeExtrator(lambda ida, ret, n: ErroPermanente(403, "bloqueada")))
+    assert pipe.executar("diario", DESDE, HOJE) == 1
+    assert execucao(banco.cur)[0] == "ABORTADA"
+
+
 def test_chave_invalida_aborta(banco):
     pipe = banco.pipeline(FakeExtrator(lambda ida, ret, n: ErroPermanente(401, "chave invalida")))
     assert pipe.executar("diario", DESDE, HOJE) == 1

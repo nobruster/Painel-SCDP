@@ -1,8 +1,9 @@
 """Carga: tudo que escreve ou le a camada staging e a conexao com o PostgreSQL."""
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
-from typing import Dict, Sequence
+from typing import Dict, Optional, Sequence
 
 import psycopg2
 from psycopg2.extras import Json, execute_values
@@ -17,19 +18,23 @@ UPSERT_STAGING = (
     "payload = EXCLUDED.payload, hash_registro = EXCLUDED.hash_registro, atualizado_em = now()"
 )
 
+KEEPALIVES = dict(keepalives=1, keepalives_idle=60, keepalives_interval=10, keepalives_count=3)
+
 
 def criar_classe_cursor(cfg: Config):
-    """Cursor que troca @STG@, @INT@ e @ANA@ pelos schemas configurados (tambem nas consultas em bytes do execute_values)."""
+    """Cursor que troca @STG@, @INT@ e @ANA@ pelos schemas configurados, so nos textos de SQL (nunca nos dados)."""
     trocas = (("@STG@", cfg.schema_stg), ("@INT@", cfg.schema_int), ("@ANA@", cfg.schema_ana))
 
     class CursorComSchemas(psycopg2.extensions.cursor):
+        @staticmethod
+        def resolver(texto: str) -> str:
+            for marcador, schema in trocas:
+                texto = texto.replace(marcador, schema)
+            return texto
+
         def execute(self, query, vars=None):
-            eh_bytes = isinstance(query, bytes)
-            texto = query.decode("utf-8") if eh_bytes else query
-            if isinstance(texto, str):
-                for marcador, schema in trocas:
-                    texto = texto.replace(marcador, schema)
-                query = texto.encode("utf-8") if eh_bytes else texto
+            if isinstance(query, str):
+                query = self.resolver(query)
             return super().execute(query, vars)
 
     return CursorComSchemas
@@ -39,19 +44,37 @@ def conectar(cfg: Config):
     opcoes = f"-c search_path={cfg.schema_stg}"
     fabrica = criar_classe_cursor(cfg)
     if cfg.database_url:
-        return psycopg2.connect(cfg.database_url, options=opcoes, cursor_factory=fabrica)
+        return psycopg2.connect(cfg.database_url, options=opcoes, cursor_factory=fabrica, **KEEPALIVES)
     faltando = [nome for nome, valor in (("PGHOST", cfg.pg_host), ("PGDATABASE", cfg.pg_database),
                                          ("PGUSER", cfg.pg_user), ("PGPASSWORD", cfg.pg_password)) if not valor]
     if faltando:
         raise ErroConfiguracao("Preencha no .env: " + ", ".join(faltando))
     return psycopg2.connect(
         host=cfg.pg_host, port=cfg.pg_port, dbname=cfg.pg_database, user=cfg.pg_user, password=cfg.pg_password,
-        sslmode=cfg.pg_sslmode, options=opcoes, cursor_factory=fabrica,
+        sslmode=cfg.pg_sslmode, options=opcoes, cursor_factory=fabrica, **KEEPALIVES,
     )
 
 
-def aplicar_schema(cur) -> None:
-    cur.execute(SCHEMA_SQL.read_text(encoding="utf-8"))
+def _versao_aplicada(cur) -> Optional[str]:
+    cur.execute("SELECT to_regclass('@STG@.ctl_schema')")
+    if cur.fetchone()[0] is None:
+        return None
+    cur.execute("SELECT versao FROM @STG@.ctl_schema WHERE id = 1")
+    linha = cur.fetchone()
+    return linha[0] if linha else None
+
+
+def aplicar_schema(cur, forcar: bool = False) -> bool:
+    """Aplica o DDL so quando o arquivo ou os nomes dos schemas mudaram (hash do texto ja resolvido em ctl_schema)."""
+    texto = cur.resolver(SCHEMA_SQL.read_text(encoding="utf-8"))
+    versao = hashlib.sha256(texto.encode("utf-8")).hexdigest()
+    if not forcar and _versao_aplicada(cur) == versao:
+        return False
+    cur.execute(texto)
+    cur.execute(
+        "INSERT INTO @STG@.ctl_schema (id, versao) VALUES (1, %s) "
+        "ON CONFLICT (id) DO UPDATE SET versao = EXCLUDED.versao, aplicado_em = now()", (versao,))
+    return True
 
 
 def buscar_hashes(cur, ids: Sequence[int]) -> Dict[int, str]:
@@ -62,9 +85,9 @@ def buscar_hashes(cur, ids: Sequence[int]) -> Dict[int, str]:
 
 
 def gravar_staging(cur, registros: Sequence[dict], hashes: Dict[int, str], ida, ret) -> None:
-    """Grava o JSON exatamente como a API devolveu."""
+    """Grava o JSON exatamente como a API devolveu (o SQL ja vai com os schemas resolvidos; os dados nao sao tocados)."""
     linhas = [(x["id"], ida, ret, Json(x), hashes[x["id"]]) for x in registros]
-    execute_values(cur, UPSERT_STAGING, linhas, page_size=200)
+    execute_values(cur, cur.resolver(UPSERT_STAGING), linhas, page_size=200)
 
 
 def contar_na_staging(cur, ids: Sequence[int]) -> int:

@@ -3,24 +3,32 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import logging
+import signal
 import sys
 from typing import List, Optional
 
 from . import carga
+from .codigos import CODIGO_INTERROMPIDO
 from .config import Config, ErroConfiguracao
 from .controle import Controle
+from .erros import descrever
 from .extracao import ClienteApi
 from .janelas import planejar
 from .pipeline import Pipeline
 
 log = logging.getLogger("scdp")
 
+ANO_MINIMO = 2011
+
 
 def mes_ano(valor: str) -> dt.date:
     try:
-        return dt.datetime.strptime(valor, "%Y-%m").date()
+        data = dt.datetime.strptime(valor, "%Y-%m").date()
     except ValueError:
         raise argparse.ArgumentTypeError(f"use o formato AAAA-MM (recebido: {valor!r})")
+    if not (ANO_MINIMO <= data.year <= dt.date.today().year + 1):
+        raise argparse.ArgumentTypeError(f"o ano precisa estar entre {ANO_MINIMO} e {dt.date.today().year + 1}")
+    return data
 
 
 def criar_parser() -> argparse.ArgumentParser:
@@ -34,6 +42,10 @@ def criar_parser() -> argparse.ArgumentParser:
     return ap
 
 
+def _encerrar(signum, frame):
+    raise KeyboardInterrupt(f"sinal {signum}")
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S")
     args = criar_parser().parse_args(argv)
@@ -42,6 +54,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     except ErroConfiguracao as e:
         log.error("%s", e)
         return 2
+    try:
+        signal.signal(signal.SIGTERM, _encerrar)
+    except (ValueError, OSError):
+        pass
     desde = args.desde
     hoje = dt.date.today()
     extrator = ClienteApi(cfg)
@@ -56,21 +72,26 @@ def main(argv: Optional[List[str]] = None) -> int:
         log.info("TOTAL %d", total)
         return 0
 
+    conn = None
     try:
         conn = carga.conectar(cfg)
-    except ErroConfiguracao as e:
-        log.error("%s", e)
-        return 2
-    try:
         cur = conn.cursor()
-        carga.aplicar_schema(cur)
-        conn.commit()
         pipeline = Pipeline(cfg, conn, extrator, Controle(cur, conn, cfg.orgao, sanitizar=cfg.sanitizar))
         if args.reconstruir_silver:
             return pipeline.reconstruir()
         return pipeline.executar(args.modo, desde, hoje)
+    except ErroConfiguracao as e:
+        log.error("%s", e)
+        return 2
+    except KeyboardInterrupt:
+        log.warning("interrompido por sinal; a execucao foi marcada como INTERROMPIDA")
+        return CODIGO_INTERROMPIDO
+    except Exception as e:
+        log.error("falha inesperada: %s", descrever(cfg, e))
+        return 1
     finally:
-        conn.close()
+        if conn is not None:
+            conn.close()
 
 
 if __name__ == "__main__":

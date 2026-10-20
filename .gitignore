@@ -47,3 +47,6 @@ Thumbs.db
 3-Etl/logs/
 3-Etl/airflow.db
 3-Etl/airflow.cfg
+
+# Template local da Dark Factory: nao versionar
+darkfactory-template/

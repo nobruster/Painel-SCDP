@@ -51,7 +51,11 @@ def test_carga_incremental_ponta_a_ponta(banco):
     cur.execute("SELECT count(*) FROM @ANA@.dim_orgao")
     assert cur.fetchone()[0] == 1
 
-    assert transformacao.atualizar_analitica(cur) <= 1
+    assert transformacao.atualizar_analitica(cur) == 0, "sem mudanca na intermediaria, nada a processar"
+    banco.conn.commit()
+    transformacao.atualizar_analitica(cur, tudo=True)
+    banco.conn.commit()
+    assert transformacao.atualizar_analitica(cur) == 0, "depois de reconstruir tudo, o empate de timestamps nao reprocessa"
     banco.conn.commit()
 
     cur.execute("UPDATE @INT@.int_viagem SET orgao_nome = 'Nome Novo', atualizado_em = now() WHERE id = 1")

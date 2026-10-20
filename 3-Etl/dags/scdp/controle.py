@@ -83,7 +83,7 @@ class Controle:
     def marcar_execucoes_interrompidas(self, horas: int = 12) -> None:
         """Execucao sem fim ha mais de `horas` caiu no meio: marca e gera erro da etapa 'execucao'."""
         self.cur.execute(
-            """UPDATE @STG@.ctl_execucao SET status = 'INTERROMPIDA'
+            """UPDATE @STG@.ctl_execucao SET status = 'INTERROMPIDA', fim = now()
                WHERE fim IS NULL AND (status IS NULL OR status = 'EXECUTANDO')
                  AND inicio < now() - make_interval(hours => %s)
                RETURNING id""", (horas,))
@@ -101,6 +101,13 @@ class Controle:
         self.execucao_id = self.cur.fetchone()[0]
         self.conn.commit()
         return self.execucao_id
+
+    def interromper_execucao(self, status: str = "INTERROMPIDA") -> None:
+        """Fecha a execucao atual sem concluir (SIGTERM do Airflow no timeout, erro de banco)."""
+        if self.execucao_id is None:
+            return
+        self.cur.execute("UPDATE @STG@.ctl_execucao SET fim=now(), status=%s WHERE id=%s", (status, self.execucao_id))
+        self.conn.commit()
 
     def finalizar_execucao(self, status: str, lidas: int, erros: int, novos: int, alterados: int) -> None:
         self.cur.execute(

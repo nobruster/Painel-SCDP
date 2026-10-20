@@ -33,25 +33,25 @@ Manter uma tabela de staging no banco com **todas** as viagens do(s) órgão(s) 
 | RF1 | Consultar `/viagens` para cada combinação mês de ida × mês de retorno (até 12 meses depois), com janelas de 1 mês | Implementado, testado na API |
 | RF2 | Paginar até resposta `[]` (15 por página) | Implementado |
 | RF3 | Gravar na bronze o JSON como recebido, com upsert por `id`; novo = insere, alterado = atualiza (hash do registro), igual = ignora; propagar para a silver | Implementado e testado em banco (ago–set/2026) |
-| RF4 | Tabela de controle por janela: status, qtd_api, qtd_carregada, novos, alterados, tentativas, aviso, erro | Implementado e testado em banco |
+| RF4 | Tabela de controle por janela: status, qtd_api, qtd_carregada, qtd_novos, qtd_alterados, tentativas, aviso, erro | Implementado e testado em banco |
 | RF5 | Fechar janela como `OK` só se `qtd_api = qtd_carregada` | Implementado e testado em banco |
 | RF6 | Modo diário: janelas com ida ou retorno nos últimos 3 meses, mais pendentes ou com erro | Implementado |
-| RF7 | Modo completo (a cada 10 dias): todas as janelas desde 2025-01 | Implementado |
+| RF7 | Modo completo (dias 1, 11 e 21, a cada ~10 dias): todas as janelas desde 2025-01 | Implementado |
 | RF8 | Detectar e sinalizar viagens antigas que entraram tarde (`TARDIO`, view `vw_ctl_tardios`) | Implementado; cenário de atraso real ainda não exercitado |
 | RF9 | Planejar também os 2 meses futuros, para pegar viagens agendadas | Implementado |
 | RF10 | Retomar de onde parou após falha | Implementado por controle de janela |
 | RF11 | Aceitar lista de órgãos (hoje um só, via `CODIGO_ORGAO`) | **Pendente**, depende da decisão 5.1 |
-| RF12 | Alerta quando houver erro/pendência (código de saída 1) | Implementado como código de saída; alerta a definir |
+| RF12 | Alerta quando houver erro/pendência (código de saída 1; 2 = configuração; 3 = outra execução em andamento) | Implementado como código de saída; alerta a definir |
 | RF13 | Gravar erros em `staging.ctl_erro` (janela, etapa, código, mensagem, tentativas, datas) e removê-los da tabela quando corrigidos, preservando-os em `ctl_erro_historico` | Implementado; testado na base real (ciclo 401 → correção) |
-| RF14 | Tentativas: até 8 por chamada com espera crescente, `Retry-After` em 429, 2 rodadas extras no fim; 400 não derruba a carga e 401 aborta | Implementado |
+| RF14 | Tentativas: até 8 por chamada com espera crescente, `Retry-After` em 429, 2 rodadas extras no fim; 400 e 404 não derrubam a carga nem são repetidos nas rodadas extras; 401 e 403 abortam | Implementado |
 | RF15 | Retomar de onde parou: janelas com erro, interrompidas ou pendentes primeiro; execução sem fim vira `INTERROMPIDA` | Implementado |
 | RF16 | Observabilidade no schema `staging`: `vw_ctl_saude`, `vw_ctl_erros_abertos`, `vw_ctl_execucoes`, `vw_ctl_pendencias` | Implementado |
 
 ## 7. Requisitos não funcionais
 - **Rate limit (oficial):** 400 req/min das 6:00 às 23:59; 700 req/min das 0:00 às 5:59. O script usa 50% do limite e respeita `Retry-After` em 429. Acima do limite o token pode ser suspenso.
-- **Resiliência:** retry com backoff em 5xx e erros de rede (504 é frequente); erros 400/401 abortam a janela.
+- **Resiliência:** retry com backoff em 5xx e erros de rede (504 é frequente); erro 400/404 registra a janela e a carga segue; 401/403 abortam a execução.
 - **Segurança:** a chave fica no `.env`, que não deve ser versionado. CPF só existe mascarado na API (`***.584.117-**`); viagens sigilosas vêm sem nome.
-- **Execução recomendada:** diário às 02:00, completo às 03:30 a cada 10 dias (faixa de 700 req/min).
+- **Execução recomendada:** diário às 02:00 e completo às 03:30 dos dias 1, 11 e 21 (a cada ~10 dias), no horário de Brasília (faixa de 700 req/min). As DAGs fixam `America/Sao_Paulo` porque a interface do Airflow mostra UTC.
 - **Desempenho esperado:** completo ≈ 400 requisições (cerca de 2 a 3 minutos com o limite noturno), para um órgão.
 
 ## 8. Fonte de dados e regras da API (resumo)
@@ -154,7 +154,7 @@ Regras: a staging nunca recebe regra de negócio; a intermediária pode ser reco
 - API: chave funcionando; varredura 2026 do órgão 33000 = **1.460 viagens** (Jan 90, Fev 183, Mar 333, Abr 164, Mai 224, Jun 202, Jul 113, Ago 145, Set 6), repetida com o mesmo resultado.
 - Integridade (1.460 registros): ids e PCDP únicos, datas completas, fim ≥ início.
 - Banco (PostgreSQL 15.12, schema `staging`): carga de teste de ago–set/2026 gravou 151 viagens; releitura seguinte deu 0 novos e 0 alterados; o total do gold para agosto (R$ 556.945,17) bate com o da API.
-- Schemas separados em uso (`staging`, `intermediaria`, `analitica`). Teste de registro tardio: uma viagem removida de todas as camadas foi reinserida na janela seguinte (novos=1) e propagada até a `obt_viagem`; com nada novo, a analítica processou 1 viagem (a da marca d'água).
+- Schemas separados em uso (`staging`, `intermediaria`, `analitica`). Teste de registro tardio: uma viagem removida de todas as camadas foi reinserida na janela seguinte (novos=1) e propagada até a `obt_viagem`; com nada novo, a analítica processa 0 viagens.
 - **Não validado:** carga completa desde 2025 no banco, `/viagens-por-cpf`, download em lote, detecção de registro tardio em cenário real.
 
 ## 10.1 Decisões registradas
@@ -169,7 +169,7 @@ Quatro revisões somente leitura (lógica e arquitetura; segurança e robustez; 
 
 | Achado | Correção |
 |---|---|
-| Duas execuções ao mesmo tempo (DAG diária e completa) podiam perder viagens na marca d'água da analítica | Trava no banco por órgão (`pg_try_advisory_lock`); a segunda execução sai com código 3 |
+| Duas execuções ao mesmo tempo (DAG diária e completa) podiam perder viagens na marca d'água da analítica | Trava no banco por combinação dos três schemas (`pg_try_advisory_lock`); a segunda execução sai com código 3 (tarefa *skipped* no Airflow) |
 | Texto vazio, inválido ou fora do limite no JSON derrubava a janela inteira (confirmado no Postgres) | Funções `f_data`, `f_numero` e `f_inteiro`: valor ruim vira `NULL` na intermediária; o JSON da staging fica intacto. Data só no formato ISO |
 | Id repetido entre páginas da API fazia o upsert falhar (confirmado) | Repetidos descartados com aviso |
 | Chave da API e senhas podiam ir para logs e para `ctl_erro` | Mascaramento (`***`) em toda mensagem; `Config` não mostra segredos no `repr` |
@@ -180,6 +180,48 @@ Quatro revisões somente leitura (lógica e arquitetura; segurança e robustez; 
 | README divergente do código | Corrigido |
 
 Pendências conhecidas, sem correção por decisão ou dependência: DAGs duplicadas e agendamento (fuso, intervalo de 10 dias, pool, segredos), conciliação que só compara a API com o que acabou de gravar (não detecta página intermediária vazia por instabilidade), `UPDATE` sem `WHERE` nas tabelas fato e `obt`, chave de beneficiário por nome + CPF parcial (homônimos), `dim_data` só até 2030 e actions do CI fixadas por tag.
+
+## 10.3 Segunda rodada de validação (19/10/2026)
+Mesmos quatro revisores sobre o código já corrigido. Todas as correções da primeira rodada foram confirmadas. Achados novos, corrigidos:
+
+| Achado | Correção |
+|---|---|
+| A mascaragem de segredos falhava com senha curta dentro da chave, senha com `%` na URL e DSN em formato chave-valor; o corpo de erro era cortado antes de mascarar | Segredos ordenados do maior para o menor e decodificados; mascarar antes de cortar |
+| Paginação podia girar para sempre (API que ignora `pagina` ou devolve um objeto) | Para se a página se repetir, se não for lista ou se passar de 1.000 páginas |
+| O `requests` seguia redirecionamentos reenviando o cabeçalho com a chave | Sem redirecionamento; 3xx é erro permanente; `https://` obrigatório |
+| Mensagem de erro do PostgreSQL trazia o `DETAIL` com dado pessoal | Só a mensagem principal vai para log e `ctl_erro` |
+| Marcadores `@INT@`/`@STG@` eram trocados também dentro dos dados gravados | A troca é feita só no texto do SQL |
+| `aplicar_schema` rodava antes da trava, a cada execução, com lock de DDL | Roda com a trava em mãos e só quando o `schema.sql` muda (hash em `ctl_schema`) |
+| A trava era por órgão, mas a marca d'água e o controle são globais | Trava por conjunto de schemas |
+| Código 3 virava falha no Airflow; erro permanente (400/404) era repetido nas rodadas extras | `skip_on_exit_code=3`; janela com erro permanente não é repetida |
+| Execução morta ficava `EXECUTANDO` por 12 h | Com a trava em mãos, é marcada `INTERROMPIDA` na hora; `SIGTERM` também finaliza a execução |
+| Conversão tolerante zerava dados sem avisar | Aviso por janela com a quantidade; arredondamento explícito de `numeric` |
+| Analítica reprocessava tudo a cada execução depois de uma reconstrução (empate no `>=` da marca d'água) | Filtro `>`, seguro porque só um escritor roda por vez |
+| DAGs: fuso UTC, `*/10` nos dias 1/11/21/31, caminho sem aspas, código duplicado | `America/Sao_Paulo`, `schedule=timedelta(days=10)`, `shlex.quote`, comando montado em `scdp/dag_util.py`, `.airflowignore` |
+
+Pendências conhecidas: conciliação que só compara a API com o que acabou de gravar, `UPDATE` sem `WHERE` nas tabelas fato e `obt`, chave de beneficiário por nome + CPF parcial, `dim_data` só até 2030, actions do CI por tag, segredos das DAGs via ambiente do worker (sem Connections/Variables do Airflow) e `CREATE OR REPLACE VIEW` com colunas explícitas (colunas novas só no fim).
+
+## 10.4 Terceira rodada de validação (19/10/2026)
+Nenhum achado alto. Todas as correções da segunda rodada foram confirmadas. Corrigido nesta rodada:
+
+| Achado | Correção |
+|---|---|
+| `schedule=timedelta(days=10)` no Airflow 2.10 não mantém o horário 03:30 | Cron `30 3 1,11,21 * *` em `America/Sao_Paulo` |
+| A completa podia ser pulada em silêncio (código 3 vira *skipped*) | `skip_on_exit_code` só na diária; na completa o código 3 falha e o retry tenta de novo |
+| O hash do schema ignorava `SCHEMA_INT` e `SCHEMA_ANA` | Hash do texto já com os nomes dos schemas resolvidos |
+| A trava considerava só `SCHEMA_STG` | Chave com os três schemas |
+| `f_numero` testava o limite antes de arredondar (9999999999999.995 estourava `numeric(15,2)`) | Arredonda antes de testar o limite |
+| `message_primary` do PostgreSQL ainda trazia o valor ofensivo (`... bigint: "FULANO"`) | Mensagem cortada antes do valor; teste com erro real de cast |
+| Erro de banco no meio da execução deixava `EXECUTANDO` | Fecha como `ABORTADA` |
+| Comando da DAG lia o ambiente no parse (scheduler), não no worker | O bash resolve `PAINEL_SCDP_HOME` e `PAINEL_SCDP_PYTHON` na hora de rodar |
+| `SIGTERM` terminava com traceback | Código 143, execução marcada `INTERROMPIDA` |
+| Schema com nome reservado ou `pg_*`; `DATABASE_URL` inválida | Recusados com erro claro, sem eco da senha |
+| CI sem timeout e testes de banco podiam ser pulados em silêncio | `timeout-minutes` e `REQUIRE_DB_TESTS=1` (falha se faltar o banco de teste); a fixture limpa os schemas se o preparo falhar |
+| Falta de índice em `int_viagem(atualizado_em)` | Criado |
+
+Observação operacional (confirmada na validação real): a trava é de sessão. Uma execução manual recebeu código 3 enquanto outra sessão do mesmo usuário (execução 27) rodava, como projetado. Se um worker morrer sem fechar a conexão, a trava só sai quando o servidor perceber a sessão morta. O `schema.sql` também exige que os três schemas já existam.
+
+Pendências conhecidas: conciliação que só compara a API com o que acabou de gravar, `UPDATE` sem `WHERE` nas tabelas fato e `obt`, chave de beneficiário por nome + CPF parcial, `dim_data` só até 2030, actions do CI por tag, segredos das DAGs via ambiente do worker, relógio do servidor que recue (poderia perder linhas na marca d'água; mitigação: `--reconstruir-silver` periódico) e retentativa da DAG repetindo a varredura quando sobra erro permanente.
 
 ## 11. Riscos
 | Risco | Mitigação |

@@ -1,24 +1,25 @@
-"""DAG scdp_carga_completa: releitura completa das janelas, a cada 10 dias.
+"""DAG scdp_carga_completa: releitura completa das janelas, nos dias 1, 11 e 21 (a cada ~10 dias).
 
-Roda o script carga_viagens.py como subprocesso (ele le o .env e as variaveis
-de ambiente ao ser importado, entao nao deve ser importado pelo Airflow).
-Variaveis de ambiente do Airflow tem prioridade sobre o .env do projeto.
+Se a trava estiver ocupada (codigo 3) a tarefa falha de proposito e o retry tenta de novo: a completa nao pode ser pulada.
+
+Roda o script carga_viagens.py como subprocesso. Variaveis de ambiente do worker (chave da API, PG*, SCHEMA_*)
+tem prioridade sobre o .env do projeto.
 """
-import os
-from datetime import datetime, timedelta
+from datetime import timedelta
 
+import pendulum
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 
-RAIZ = os.environ.get("PAINEL_SCDP_HOME", "/opt/repos/Painel-SCDP")
-PYTHON = os.environ.get("PAINEL_SCDP_PYTHON", "/opt/airflow/venv/bin/python")
-CARGA = f"{PYTHON} -I {RAIZ}/3-Etl/dags/carga_viagens.py"
+from scdp.dag_util import comando_carga
+
+FUSO = "America/Sao_Paulo"
 
 with DAG(
     dag_id="scdp_carga_completa",
-    description="Releitura completa de todas as janelas desde 2025-01, a cada 10 dias",
-    schedule="30 3 */10 * *",
-    start_date=datetime(2026, 10, 1),
+    description="Releitura completa de todas as janelas desde 2025-01, nos dias 1, 11 e 21 de cada mes (a cada ~10 dias)",
+    schedule="30 3 1,11,21 * *",
+    start_date=pendulum.datetime(2026, 10, 1, 3, 30, tz=FUSO),
     catchup=False,
     max_active_runs=1,
     default_args={"owner": "dados", "retries": 1, "retry_delay": timedelta(minutes=15)},
@@ -26,6 +27,6 @@ with DAG(
 ) as dag:
     BashOperator(
         task_id="carga_completa",
-        bash_command=f"{CARGA} --modo completo --desde 2025-01",
+        bash_command=comando_carga("--modo", "completo", "--desde", "2025-01"),
         execution_timeout=timedelta(hours=10),
     )

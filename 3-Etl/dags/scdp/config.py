@@ -4,13 +4,16 @@ import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, Tuple
-from urllib.parse import urlsplit
+from typing import List, Optional, Tuple
+from urllib.parse import unquote, urlsplit
+
+from psycopg2.extensions import parse_dsn
 
 RAIZ = Path(__file__).resolve().parents[3]
 
 OBRIGATORIAS = ("PORTAL_TRANSPARENCIA_BASE_URL", "PORTAL_TRANSPARENCIA_API_KEY", "CODIGO_ORGAO")
 SCHEMA_VALIDO = re.compile(r"[a-z_][a-z0-9_]{0,62}")
+RESERVADOS = {"user", "select", "table", "order", "group", "from", "where", "all", "default", "public_"}
 
 
 class ErroConfiguracao(RuntimeError):
@@ -52,16 +55,47 @@ class Config:
     tentativas_http: int = 8
     timeout_http: int = 90
     rodadas_retentativa: int = 2
-    horas_execucao_interrompida: int = 12
+    horas_execucao_interrompida: int = 0
 
     def __post_init__(self) -> None:
         for schema in (self.schema_stg, self.schema_int, self.schema_ana):
-            if not SCHEMA_VALIDO.fullmatch(schema):
+            if not SCHEMA_VALIDO.fullmatch(schema) or schema.startswith("pg_") or schema in RESERVADOS:
                 raise ErroConfiguracao(f"Nome de schema invalido: {schema!r}")
+        if self.database_url:
+            try:
+                parse_dsn(self.database_url)
+            except Exception:
+                raise ErroConfiguracao("DATABASE_URL invalida") from None
+        if not self.url_base.startswith("https://"):
+            raise ErroConfiguracao("PORTAL_TRANSPARENCIA_BASE_URL precisa usar https:// (a chave vai no cabecalho)")
+
+    def _senhas_da_url(self) -> List[str]:
+        if not self.database_url:
+            return []
+        senhas: List[str] = []
+        try:
+            senha = urlsplit(self.database_url).password
+            if senha:
+                senhas.append(senha)
+        except ValueError:
+            pass
+        try:
+            senha = parse_dsn(self.database_url).get("password")
+            if senha:
+                senhas.append(senha)
+        except Exception:
+            pass
+        return senhas
 
     def segredos(self) -> Tuple[str, ...]:
-        senha_da_url = urlsplit(self.database_url).password if self.database_url else None
-        return tuple(s for s in (self.chave_api, self.pg_password, senha_da_url) if s)
+        """Chave e senhas (tambem decodificadas de URL), das maiores para as menores, para mascarar sem sobrepor."""
+        candidatos = [self.chave_api, self.pg_password, *self._senhas_da_url()]
+        todos = set()
+        for c in candidatos:
+            if c:
+                todos.add(c)
+                todos.add(unquote(c))
+        return tuple(sorted((s for s in todos if s), key=len, reverse=True))
 
     def sanitizar(self, texto) -> str:
         """Troca chave da API e senhas do banco por *** antes de gravar ou logar uma mensagem de erro."""
@@ -77,6 +111,10 @@ class Config:
         faltando = [k for k in OBRIGATORIAS if not e.get(k)]
         if faltando:
             raise ErroConfiguracao("Variaveis obrigatorias ausentes: " + ", ".join(faltando))
+        try:
+            porta = int(e.get("PGPORT") or 5432)
+        except ValueError:
+            raise ErroConfiguracao("PGPORT precisa ser um numero") from None
         stg = e.get("SCHEMA_STG") or "staging"
         return cls(
             url_base=e["PORTAL_TRANSPARENCIA_BASE_URL"].rstrip("/"),
@@ -87,7 +125,7 @@ class Config:
             schema_ana=e.get("SCHEMA_ANA") or stg,
             database_url=e.get("DATABASE_URL") or None,
             pg_host=e.get("PGHOST") or None,
-            pg_port=int(e.get("PGPORT") or 5432),
+            pg_port=porta,
             pg_database=e.get("PGDATABASE") or None,
             pg_user=e.get("PGUSER") or None,
             pg_password=e.get("PGPASSWORD") or None,

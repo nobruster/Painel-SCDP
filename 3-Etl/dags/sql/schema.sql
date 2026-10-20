@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS @INT@.int_viagem (
 
 CREATE INDEX IF NOT EXISTS ix_int_viagem_inicio ON @INT@.int_viagem (data_inicio);
 CREATE INDEX IF NOT EXISTS ix_int_viagem_orgao ON @INT@.int_viagem (orgao_siafi, data_inicio);
+CREATE INDEX IF NOT EXISTS ix_int_viagem_atualizado ON @INT@.int_viagem (atualizado_em);
 
 -- CONTROLE
 CREATE TABLE IF NOT EXISTS @STG@.ctl_janela (
@@ -143,6 +144,13 @@ CREATE TABLE IF NOT EXISTS @STG@.ctl_camada (
     atualizado_em  timestamptz NOT NULL DEFAULT now()
 );
 
+-- Versao do schema aplicada (hash do arquivo): o DDL so roda de novo quando o arquivo muda.
+CREATE TABLE IF NOT EXISTS @STG@.ctl_schema (
+    id            int PRIMARY KEY CHECK (id = 1),
+    versao        text NOT NULL,
+    aplicado_em   timestamptz NOT NULL DEFAULT now()
+);
+
 -- Observabilidade (schema staging): erros abertos, execucoes e resumo de saude da carga.
 CREATE OR REPLACE VIEW @STG@.vw_ctl_erros_abertos AS
 SELECT chave, orgao, ida_mes, retorno_mes, etapa, codigo, mensagem, tentativas,
@@ -184,7 +192,7 @@ CREATE TABLE IF NOT EXISTS @ANA@.dim_data (
 INSERT INTO @ANA@.dim_data (data_key, ano, trimestre, mes, ano_mes, dia_semana, fim_de_semana)
 SELECT d::date, extract(year FROM d)::int, extract(quarter FROM d)::int, extract(month FROM d)::int,
        to_char(d, 'YYYY-MM'), extract(isodow FROM d)::int, extract(isodow FROM d) IN (6, 7)
-FROM generate_series('2020-01-01'::date, '2030-12-31'::date, interval '1 day') AS d
+FROM generate_series('2020-01-01'::timestamp, '2030-12-31'::timestamp, interval '1 day') AS d
 ON CONFLICT (data_key) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS @ANA@.dim_orgao (
@@ -291,7 +299,7 @@ END $$;
 CREATE OR REPLACE FUNCTION @INT@.f_numero(t text) RETURNS numeric LANGUAGE plpgsql STABLE AS $$
 DECLARE v numeric;
 BEGIN
-    v := nullif(btrim(t), '')::numeric;
+    v := round(nullif(btrim(t), '')::numeric, 2);
     IF v IS NULL OR v >= 10000000000000 OR v <= -10000000000000 THEN
         RETURN NULL;
     END IF;

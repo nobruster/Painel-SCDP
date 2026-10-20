@@ -18,10 +18,11 @@ HORA_FIM_DA_MADRUGADA = 6
 PERMANENTES = (400, 401, 403, 404)
 ESPERA_PADRAO_429_S = 60
 ESPERA_MAXIMA_429_S = 300
+MAX_PAGINAS = 1000
 
 
 class ErroPermanente(Exception):
-    """Erro que nao adianta repetir (400 parametro invalido, 401/403 chave invalida ou bloqueada, 404)."""
+    """Erro que nao adianta repetir (400 parametro invalido, 401/403 chave invalida ou bloqueada, 404, redirecionamento)."""
 
     def __init__(self, codigo: int, mensagem: str):
         super().__init__(f"{codigo} {mensagem}")
@@ -60,9 +61,12 @@ class ClienteApi:
         for tentativa in range(1, self.cfg.tentativas_http + 1):
             dados = None
             try:
-                r = self.sessao.get(url, params=params, timeout=self.cfg.timeout_http)
+                # sem seguir redirecionamentos: o requests reenviaria o cabecalho com a chave ao host de destino
+                r = self.sessao.get(url, params=params, timeout=self.cfg.timeout_http, allow_redirects=False)
                 if r.status_code == 200:
                     dados = r.json()
+                    if not isinstance(dados, list):
+                        raise ValueError("resposta da API nao e uma lista")
             except (requests.RequestException, ValueError) as e:
                 log.warning("%s, tentativa %d", type(e).__name__, tentativa)
                 self.dormir(4 * tentativa)
@@ -70,8 +74,8 @@ class ClienteApi:
             if r.status_code == 200:
                 self.pausar()
                 return dados
-            if r.status_code in PERMANENTES:
-                raise ErroPermanente(r.status_code, self.cfg.sanitizar(r.text[:150]))
+            if r.status_code in PERMANENTES or 300 <= r.status_code < 400:
+                raise ErroPermanente(r.status_code, self.cfg.sanitizar(r.text)[:150])
             log.warning("status %d, tentativa %d", r.status_code, tentativa)
             if r.status_code == 429:
                 self.dormir(espera_retry_after(r.headers.get("Retry-After")))
@@ -85,10 +89,17 @@ class ClienteApi:
         ra, rb = faixa(ret)
         base = dict(dataIdaDe=ia, dataIdaAte=ib, dataRetornoDe=ra, dataRetornoAte=rb, codigoOrgao=self.cfg.orgao)
         registros: List[dict] = []
+        ids_anteriores = None
         pagina = 1
         while True:
+            if pagina > MAX_PAGINAS:
+                raise RuntimeError(f"mais de {MAX_PAGINAS} paginas na janela; a API parece nao estar paginando")
             dados = self._get({**base, "pagina": pagina})
             if not dados:
                 return registros, pagina - 1
+            ids = [x.get("id") if isinstance(x, dict) else None for x in dados]
+            if ids == ids_anteriores:
+                raise RuntimeError(f"a API devolveu a pagina {pagina - 1} de novo; paginacao ignorada")
+            ids_anteriores = ids
             registros += dados
             pagina += 1

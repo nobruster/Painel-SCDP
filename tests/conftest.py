@@ -45,6 +45,8 @@ def banco(cfg):
     """PostgreSQL em TEST_DATABASE_URL (servico do CI). Cria e remove so os schemas zz_teste_*."""
     url = os.environ.get("TEST_DATABASE_URL")
     if not url:
+        if os.environ.get("REQUIRE_DB_TESTS"):
+            pytest.fail("REQUIRE_DB_TESTS esta ligado mas TEST_DATABASE_URL nao foi definida")
         pytest.skip("TEST_DATABASE_URL nao definida")
     conn = carga.conectar(dataclasses.replace(cfg, database_url=url))
     cur = conn.cursor()
@@ -56,9 +58,19 @@ def banco(cfg):
                 cur.execute(f"CREATE SCHEMA {s}")
         conn.commit()
 
-    recriar(True)
-    carga.aplicar_schema(cur)
-    conn.commit()
+    try:
+        recriar(True)
+        carga.aplicar_schema(cur)
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        conn.close()
+        limpeza = carga.conectar(dataclasses.replace(cfg, database_url=url))
+        for s in SCHEMAS_DE_TESTE:
+            limpeza.cursor().execute(f"DROP SCHEMA IF EXISTS {s} CASCADE")
+        limpeza.commit()
+        limpeza.close()
+        raise
     yield Banco(cfg, conn, cur, Controle(cur, conn, cfg.orgao, sanitizar=cfg.sanitizar))
     if not conn.closed:
         conn.rollback()

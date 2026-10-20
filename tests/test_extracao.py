@@ -25,7 +25,8 @@ class Sessao:
         self.respostas = list(respostas)
         self.params = []
 
-    def get(self, url, params, timeout):
+    def get(self, url, params, timeout, **kw):
+        self.kw = kw
         self.params.append(params)
         r = self.respostas.pop(0)
         if isinstance(r, Exception):
@@ -120,6 +121,49 @@ def test_corpo_de_erro_que_ecoa_a_chave_e_mascarado(cfg):
     with pytest.raises(ErroPermanente) as e:
         c.buscar(IDA, RET)
     assert "chave-de-teste" not in str(e.value)
+
+
+def test_nao_segue_redirecionamento_para_nao_vazar_a_chave(cfg):
+    c, sessao, _ = cliente(cfg, [Resposta(200, [])])
+    c.buscar(IDA, RET)
+    assert sessao.kw["allow_redirects"] is False
+    c2, _, _ = cliente(cfg, [Resposta(302, texto="Location: http://outro-host")])
+    with pytest.raises(ErroPermanente) as e:
+        c2.buscar(IDA, RET)
+    assert e.value.codigo == 302
+
+
+def test_chave_cortada_pelo_limite_de_150_caracteres_nao_vaza(cfg):
+    texto = "x" * 145 + "chave-de-teste"
+    c, _, _ = cliente(cfg, [Resposta(400, texto=texto)])
+    with pytest.raises(ErroPermanente) as e:
+        c.buscar(IDA, RET)
+    assert "chave" not in str(e.value).replace("chave invalida", "")
+    assert "***" in str(e.value)
+
+
+def test_resposta_que_nao_e_lista_nao_vira_dado(cfg):
+    import dataclasses
+    curto = dataclasses.replace(cfg, tentativas_http=2)
+    c, _, _ = cliente(curto, [Resposta(200, {"mensagem": "manutencao"}), Resposta(200, {"mensagem": "manutencao"})])
+    with pytest.raises(RuntimeError):
+        c.buscar(IDA, RET)
+
+
+def test_pagina_repetida_nao_gera_loop_infinito(cfg):
+    pagina = [{"id": 1}, {"id": 2}]
+    c, sessao, _ = cliente(cfg, [Resposta(200, pagina), Resposta(200, pagina), Resposta(200, pagina)])
+    with pytest.raises(RuntimeError, match="de novo"):
+        c.buscar(IDA, RET)
+    assert len(sessao.params) == 2
+
+
+def test_limite_de_paginas(cfg, monkeypatch):
+    from scdp import extracao
+    monkeypatch.setattr(extracao, "MAX_PAGINAS", 3)
+    c, _, _ = cliente(cfg, [Resposta(200, [{"id": n}]) for n in range(10)])
+    with pytest.raises(RuntimeError, match="paginas"):
+        c.buscar(IDA, RET)
 
 
 def test_pausa_segue_o_limite_do_horario_de_brasilia(cfg):

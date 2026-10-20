@@ -102,6 +102,14 @@ def atualizar_intermediaria(cur, ids: Optional[Iterable[int]] = None) -> None:
         cur.execute(INT_UPSERT.format(where="WHERE b.id = ANY(%s)"), (list(ids),))
 
 
+def contar_incompletos(cur, ids: Sequence[int]) -> int:
+    """Quantas viagens ficaram sem data ou sem valor total na intermediaria (conversao tolerante devolveu NULL)."""
+    cur.execute(
+        "SELECT count(*) FROM @INT@.int_viagem WHERE id = ANY(%s) "
+        "AND (data_inicio IS NULL OR data_fim IS NULL OR valor_total_viagem IS NULL)", (list(ids),))
+    return cur.fetchone()[0]
+
+
 def _upsert(tabela: str, cols: List[str], select: str, chave: str) -> str:
     sets = ", ".join(f"{c} = EXCLUDED.{c}" for c in cols if c != chave)
     return f"INSERT INTO {tabela} ({', '.join(cols)}) {select} ON CONFLICT ({chave}) DO UPDATE SET {sets}, atualizado_em = now()"
@@ -115,7 +123,7 @@ def atualizar_analitica(cur, tudo: bool = False) -> int:
     cur.execute("CREATE TEMP TABLE IF NOT EXISTS tmp_viagem_ids (id bigint PRIMARY KEY)")
     cur.execute("CREATE TEMP TABLE IF NOT EXISTS tmp_obt_ids (id bigint PRIMARY KEY)")
     cur.execute("TRUNCATE tmp_viagem_ids, tmp_obt_ids")
-    cur.execute("INSERT INTO tmp_viagem_ids SELECT id FROM @INT@.int_viagem WHERE %s::timestamptz IS NULL OR atualizado_em >= %s",
+    cur.execute("INSERT INTO tmp_viagem_ids SELECT id FROM @INT@.int_viagem WHERE %s::timestamptz IS NULL OR atualizado_em > %s",
                 (marca, marca))
     cur.execute("SELECT count(*), max(i.atualizado_em) FROM @INT@.int_viagem i JOIN tmp_viagem_ids t ON t.id = i.id")
     qtd, nova_marca = cur.fetchone()
