@@ -1,3 +1,7 @@
+-- Serializa o DDL entre execucoes simultaneas e evita esperar lock indefinidamente.
+SET LOCAL lock_timeout = '15s';
+SELECT pg_advisory_xact_lock(727274);
+
 -- STAGING (bronze): JSON exatamente como recebido da API, sem tratamento.
 CREATE TABLE IF NOT EXISTS @STG@.stg_viagem (
     id              bigint      PRIMARY KEY,
@@ -74,11 +78,54 @@ CREATE TABLE IF NOT EXISTS @STG@.ctl_execucao (
     janelas_lidas  int,
     janelas_erro   int,
     novos          int,
-    alterados      int
+    alterados      int,
+    status         text
 );
 
+-- Erros abertos: uma linha por (janela, etapa). Sai desta tabela quando o erro e corrigido (vai para o historico).
+CREATE TABLE IF NOT EXISTS @STG@.ctl_erro (
+    chave               text PRIMARY KEY,
+    orgao               text,
+    ida_mes             date,
+    retorno_mes         date,
+    etapa               text NOT NULL,
+    codigo              text,
+    mensagem            text,
+    tentativas          int NOT NULL DEFAULT 1,
+    primeira_ocorrencia timestamptz NOT NULL DEFAULT now(),
+    ultima_ocorrencia   timestamptz NOT NULL DEFAULT now(),
+    execucao_id         bigint
+);
+
+CREATE TABLE IF NOT EXISTS @STG@.ctl_erro_historico (
+    id                    bigserial PRIMARY KEY,
+    chave                 text,
+    orgao                 text,
+    ida_mes               date,
+    retorno_mes           date,
+    etapa                 text,
+    codigo                text,
+    mensagem              text,
+    tentativas            int,
+    primeira_ocorrencia   timestamptz,
+    ultima_ocorrencia     timestamptz,
+    execucao_id           bigint,
+    resolvido_em          timestamptz NOT NULL DEFAULT now(),
+    resolvido_na_execucao bigint
+);
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_schema = '@STG@' AND table_name = 'ctl_execucao' AND column_name = 'status') THEN
+        ALTER TABLE @STG@.ctl_execucao ADD COLUMN status text;
+    END IF;
+END $$;
+
 CREATE OR REPLACE VIEW @STG@.vw_ctl_pendencias AS
-SELECT * FROM @STG@.ctl_janela WHERE status <> 'OK' OR qtd_api IS DISTINCT FROM qtd_carregada;
+SELECT orgao, ida_mes, retorno_mes, status, paginas_lidas, qtd_api, qtd_carregada, qtd_novos, qtd_alterados,
+       tentativas, aviso, erro, inicio, fim
+FROM @STG@.ctl_janela WHERE status <> 'OK' OR qtd_api IS DISTINCT FROM qtd_carregada;
 
 CREATE OR REPLACE VIEW @STG@.vw_ctl_tardios AS
 SELECT b.id, s.data_inicio, s.data_fim, b.janela_ida, b.janela_retorno, b.carregado_em
@@ -96,6 +143,34 @@ CREATE TABLE IF NOT EXISTS @STG@.ctl_camada (
     atualizado_em  timestamptz NOT NULL DEFAULT now()
 );
 
+-- Observabilidade (schema staging): erros abertos, execucoes e resumo de saude da carga.
+CREATE OR REPLACE VIEW @STG@.vw_ctl_erros_abertos AS
+SELECT chave, orgao, ida_mes, retorno_mes, etapa, codigo, mensagem, tentativas,
+       primeira_ocorrencia, ultima_ocorrencia,
+       round(extract(epoch FROM (now() - primeira_ocorrencia)) / 3600.0, 1) AS horas_aberto,
+       execucao_id
+FROM @STG@.ctl_erro;
+
+CREATE OR REPLACE VIEW @STG@.vw_ctl_execucoes AS
+SELECT id, modo, status, inicio, fim,
+       round(extract(epoch FROM (coalesce(fim, now()) - inicio)) / 60.0, 1) AS minutos,
+       janelas_total, janelas_lidas, janelas_erro, novos, alterados
+FROM @STG@.ctl_execucao;
+
+CREATE OR REPLACE VIEW @STG@.vw_ctl_saude AS
+SELECT
+  (SELECT count(*) FROM @STG@.ctl_janela)                                         AS janelas_total,
+  (SELECT count(*) FROM @STG@.ctl_janela WHERE status = 'OK')                     AS janelas_ok,
+  (SELECT count(*) FROM @STG@.ctl_janela WHERE status <> 'OK')                    AS janelas_pendentes,
+  (SELECT count(*) FROM @STG@.ctl_erro)                                           AS erros_abertos,
+  (SELECT count(*) FROM @STG@.ctl_erro_historico)                                 AS erros_resolvidos,
+  (SELECT sum(qtd_api) FROM @STG@.ctl_janela)                                     AS registros_api,
+  (SELECT sum(qtd_carregada) FROM @STG@.ctl_janela)                               AS registros_carregados,
+  (SELECT status FROM @STG@.ctl_execucao ORDER BY id DESC LIMIT 1)                AS ultima_execucao_status,
+  (SELECT fim FROM @STG@.ctl_execucao ORDER BY id DESC LIMIT 1)                   AS ultima_execucao_fim,
+  (SELECT max(fim) FROM @STG@.ctl_execucao WHERE status = 'CONCLUIDA')            AS ultima_execucao_concluida,
+  (SELECT marca FROM @STG@.ctl_camada WHERE camada = 'analitica')                 AS marca_analitica;
+
 -- ANALITICA (gold): tabelas dimensionais (dim_*), fato (fct_*) e one big table (obt_*), carga incremental.
 CREATE TABLE IF NOT EXISTS @ANA@.dim_data (
     data_key       date PRIMARY KEY,
@@ -106,7 +181,7 @@ CREATE TABLE IF NOT EXISTS @ANA@.dim_data (
     dia_semana     int,
     fim_de_semana  boolean
 );
-INSERT INTO @ANA@.dim_data
+INSERT INTO @ANA@.dim_data (data_key, ano, trimestre, mes, ano_mes, dia_semana, fim_de_semana)
 SELECT d::date, extract(year FROM d)::int, extract(quarter FROM d)::int, extract(month FROM d)::int,
        to_char(d, 'YYYY-MM'), extract(isodow FROM d)::int, extract(isodow FROM d) IN (6, 7)
 FROM generate_series('2020-01-01'::date, '2030-12-31'::date, interval '1 day') AS d
@@ -200,3 +275,34 @@ CREATE TABLE IF NOT EXISTS @ANA@.obt_viagem (
 );
 CREATE INDEX IF NOT EXISTS ix_obt_viagem_mes ON @ANA@.obt_viagem (ano_mes_inicio);
 CREATE INDEX IF NOT EXISTS ix_obt_viagem_orgao ON @ANA@.obt_viagem (orgao_siafi);
+
+-- Conversoes tolerantes: texto vazio, invalido ou fora do limite de numeric(15,2) viram NULL em vez de derrubar a janela.
+-- O JSON original continua intacto na staging.
+CREATE OR REPLACE FUNCTION @INT@.f_data(t text) RETURNS date LANGUAGE plpgsql STABLE AS $$
+BEGIN
+    IF t IS NULL OR btrim(t) !~ '^\d{4}-\d{2}-\d{2}' THEN
+        RETURN NULL;
+    END IF;
+    RETURN btrim(t)::date;
+EXCEPTION WHEN others THEN
+    RETURN NULL;
+END $$;
+
+CREATE OR REPLACE FUNCTION @INT@.f_numero(t text) RETURNS numeric LANGUAGE plpgsql STABLE AS $$
+DECLARE v numeric;
+BEGIN
+    v := nullif(btrim(t), '')::numeric;
+    IF v IS NULL OR v >= 10000000000000 OR v <= -10000000000000 THEN
+        RETURN NULL;
+    END IF;
+    RETURN v;
+EXCEPTION WHEN others THEN
+    RETURN NULL;
+END $$;
+
+CREATE OR REPLACE FUNCTION @INT@.f_inteiro(t text) RETURNS int LANGUAGE plpgsql STABLE AS $$
+BEGIN
+    RETURN nullif(btrim(t), '')::int;
+EXCEPTION WHEN others THEN
+    RETURN NULL;
+END $$;

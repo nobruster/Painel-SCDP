@@ -9,7 +9,8 @@ Estado em 19/10/2026: carga testada com o órgão `33000` (MPS). Varredura de 20
 |---|---|
 | `1-Documentos/` | `PRD.md`, `referencia_api.md` (spec dos 109 endpoints), `dicionario-de-dados-viagens.md`, `perguntas-dono-da-api.md` (com os testes feitos) e `referencia/` (códigos de órgãos SIAFI e SIAPE) |
 | `2-Scripts/` | Exploração e validação: `consulta_viagens.py`, `varredura_2026.py` e `postman/`. `saidas/` guarda dados gerados (não versionado) |
-| `3-Etl/dags/` | `carga_viagens.py` (carga) e `sql/schema.sql` (DDL), prontos para o Airflow orquestrar |
+| `3-Etl/dags/` | DAGs do Airflow, `carga_viagens.py` (ponto de entrada), o pacote `scdp/` (código da carga) e `sql/schema.sql` (DDL) |
+| `tests/` | Testes unitários e de integração (rodam no CI com PostgreSQL) |
 | `4-DataViz/` | Painel |
 | `5-Images/` | Imagens e prints |
 
@@ -22,7 +23,22 @@ Estado em 19/10/2026: carga testada com o órgão `33000` (MPS). Varredura de 20
 
 Requisitos: Python 3 com `requests` e `psycopg2`. Sugestão de agendamento: diário às 02:00 e completo a cada 10 dias às 03:30 (faixa de 700 requisições por minuto). O código sai com código 1 se sobrar janela com erro ou pendente.
 
-Variáveis do `.env` (modelo em `.env.example`): `PORTAL_TRANSPARENCIA_API_KEY`, `PORTAL_TRANSPARENCIA_BASE_URL`, `CODIGO_ORGAO`, `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`, `PGSCHEMA`, `PGSSLMODE`, `DATABASE_URL` (opcional, tem prioridade) e `SCHEMA_STG`, `SCHEMA_INT`, `SCHEMA_ANA`. Variáveis de ambiente (como as do Airflow) têm prioridade sobre o arquivo.
+Variáveis do `.env` (modelo em `.env.example`): `PORTAL_TRANSPARENCIA_API_KEY`, `PORTAL_TRANSPARENCIA_BASE_URL`, `CODIGO_ORGAO`, `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`, `PGSSLMODE`, `DATABASE_URL` (opcional, tem prioridade) e `SCHEMA_STG`, `SCHEMA_INT`, `SCHEMA_ANA`. Variáveis de ambiente (como as do Airflow) têm prioridade sobre o arquivo.
+
+## Arquitetura do código (extração, carga e transformação)
+O código fica no pacote `3-Etl/dags/scdp/`, separado por responsabilidade. A configuração é um objeto único (`Config`), as dependências são injetadas (o pipeline recebe o cliente da API e o controle, o que permite testar sem rede) e as mensagens saem por `logging`.
+
+| Módulo | Etapa | Responsabilidade |
+|---|---|---|
+| `extracao.py` | Extração (E) | Único ponto de contato com a API: paginação, tentativas, `Retry-After` e pausa pelo limite do horário de Brasília |
+| `carga.py` | Carga (L) | Conexão com o PostgreSQL, schemas configuráveis e gravação do JSON como veio na staging (`stg_viagem`) |
+| `transformacao.py` | Transformação (T) | Detecção do que é novo ou alterado (hash), staging → intermediária e intermediária → analítica, tudo incremental |
+| `controle.py` | Observabilidade | Janelas, erros abertos e resolvidos, execuções (schema `staging`) |
+| `janelas.py` | Planejamento | Combinações de mês de ida × mês de retorno, quais janelas ler em cada modo e ordem de retomada |
+| `pipeline.py` | Orquestração | Executa janela a janela: extrai, carrega, transforma, concilia, registra erros e retoma |
+| `config.py` / `cli.py` | Entrada | Variáveis de ambiente e linha de comando |
+
+`carga_viagens.py` só chama `scdp.cli.main`; as DAGs do Airflow executam esse arquivo.
 
 ## Modelo de dados (medalhão)
 | Camada | Schema e prefixo | Conteúdo |
@@ -50,8 +66,18 @@ Em 2026: das 1.460 viagens, 1.323 começam e terminam no mesmo mês, 125 retorna
 - **Modo diário:** relê as janelas com ida ou retorno nos últimos 3 meses, mais as pendentes ou com erro (156 das 312).
 - **Modo completo:** relê todas as janelas; pega registros antigos que entraram com atraso (marcados como `TARDIO`).
 
-## Controle e conciliação
-Cada janela só vira `OK` se a quantidade devolvida pela API for igual à carregada. Janela que devolve menos registros do que na leitura anterior é relida e gera aviso. A carga retoma de onde parou depois de uma falha, e tentativas repetidas tratam 5xx, 504 e queda de rede, com espera do `Retry-After` em 429. `vw_ctl_pendencias` mostra o que falta.
+## Controle, erros e retomada (schema `staging`)
+Cada janela só vira `OK` se a quantidade devolvida pela API for igual à carregada. Janela que devolve menos registros do que na leitura anterior é relida e gera aviso.
+
+**Erros:** toda falha é gravada em `staging.ctl_erro` (uma linha por janela e etapa: `api`, `banco`, `conciliacao`, `analitica` ou `execucao`), com código, mensagem, número de tentativas e primeira e última ocorrência. Quando o erro é corrigido, a linha **sai de `ctl_erro`** e vai para `ctl_erro_historico`, com a data e a execução que resolveu.
+
+**Tentativas:** dentro de cada chamada são até 8 tentativas com espera crescente (5xx, 504, queda de rede) e espera do `Retry-After` em 429. Janelas que ainda falharam ganham mais 2 rodadas no fim da execução. Erro 400 é registrado e a carga continua; erro 401 (chave inválida) aborta a execução, porque todas falhariam.
+
+**Retomada:** a execução seguinte começa pelas janelas com erro, interrompidas ou pendentes e depois segue em ordem. Uma execução que caiu sem registrar o fim (mais de 12 horas) é marcada `INTERROMPIDA` e gera um erro da etapa `execucao`, resolvido na próxima execução limpa. Uma falha na analítica não perde dados: a marca d'água só avança quando a carga termina, então ela é refeita sozinha.
+
+**Consultas de monitoramento:** `vw_ctl_saude` (uma linha com o resumo: janelas pendentes, erros abertos e resolvidos, última execução, marca da analítica), `vw_ctl_erros_abertos` (com horas em aberto), `vw_ctl_execucoes` (status e duração), `vw_ctl_pendencias` e `vw_ctl_tardios`. O código de saída é 0 (limpa), 1 (erro aberto, janela pendente ou execução abortada) ou 3 (outra execução da carga em andamento para o mesmo órgão).
+
+**Segurança e robustez:** uma trava no banco (`pg_try_advisory_lock`) permite uma execução por vez por órgão, o que também protege a marca d'água da analítica; os nomes de schema são validados; chave da API e senhas são trocadas por `***` antes de irem para logs e para `ctl_erro`; resposta 200 que não é JSON é tentada de novo; 403 aborta como o 401; texto vazio, inválido ou fora do limite vira `NULL` na intermediária (o JSON original fica intacto na staging); ids repetidos pela API na mesma janela são descartados com aviso.
 
 ## Regras da API (resumo)
 - Base: `https://api.portaldatransparencia.gov.br/api-de-dados`; autenticação pelo header `chave-api-dados`.
@@ -70,7 +96,7 @@ Cada janela só vira `OK` se a quantidade devolvida pela API for igual à carreg
 - **Escopo de órgãos:** só `33000` ou o MPS inteiro (INSS, PREVIC)? Define o volume da carga.
 - **Código `308819`:** não existe como órgão no SIAFI nem no SIAPE; origem a esclarecer.
 - **Download em lote:** avaliar para o histórico, passagens, trechos e pagamentos.
-- **Airflow:** as DAGs (diária e completa a cada 10 dias) ainda não foram criadas.
+- **Airflow:** as DAGs existem em `3-Etl/dags/`, mas há `dag_id` duplicado entre os arquivos e o agendamento ainda precisa de ajuste de fuso e de intervalo (ver avaliação das DAGs).
 - **Perguntas para o dono da API:** `1-Documentos/perguntas-dono-da-api.md`.
 
 ## Limites conhecidos

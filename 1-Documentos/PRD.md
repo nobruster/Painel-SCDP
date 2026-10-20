@@ -42,6 +42,10 @@ Manter uma tabela de staging no banco com **todas** as viagens do(s) órgão(s) 
 | RF10 | Retomar de onde parou após falha | Implementado por controle de janela |
 | RF11 | Aceitar lista de órgãos (hoje um só, via `CODIGO_ORGAO`) | **Pendente**, depende da decisão 5.1 |
 | RF12 | Alerta quando houver erro/pendência (código de saída 1) | Implementado como código de saída; alerta a definir |
+| RF13 | Gravar erros em `staging.ctl_erro` (janela, etapa, código, mensagem, tentativas, datas) e removê-los da tabela quando corrigidos, preservando-os em `ctl_erro_historico` | Implementado; testado na base real (ciclo 401 → correção) |
+| RF14 | Tentativas: até 8 por chamada com espera crescente, `Retry-After` em 429, 2 rodadas extras no fim; 400 não derruba a carga e 401 aborta | Implementado |
+| RF15 | Retomar de onde parou: janelas com erro, interrompidas ou pendentes primeiro; execução sem fim vira `INTERROMPIDA` | Implementado |
+| RF16 | Observabilidade no schema `staging`: `vw_ctl_saude`, `vw_ctl_erros_abertos`, `vw_ctl_execucoes`, `vw_ctl_pendencias` | Implementado |
 
 ## 7. Requisitos não funcionais
 - **Rate limit (oficial):** 400 req/min das 6:00 às 23:59; 700 req/min das 0:00 às 5:59. O script usa 50% do limite e respeita `Retry-After` em 429. Acima do limite o token pode ser suspenso.
@@ -160,6 +164,23 @@ Regras: a staging nunca recebe regra de negócio; a intermediária pode ser reco
 | 19/10/2026 | O campo `motivo` (texto livre) sai da camada analítica (`fct_viagem` e `obt_viagem`). Continua na intermediária (`int_viagem`) e, como veio, no JSON da staging | Texto livre pode conter dado pessoal; a analítica é a camada de consumo |
 | 19/10/2026 | Nome do beneficiário segue na analítica (`dim_beneficiario`, `obt_viagem`) | **Pendente** confirmar (default do Atlas: dado individual fora do gold sem ADR) |
 
+## 10.2 Validação do stack por revisão independente (19/10/2026)
+Quatro revisões somente leitura (lógica e arquitetura; segurança e robustez; SQL do PostgreSQL; checagens mecânicas e documentação). O que foi confirmado e corrigido:
+
+| Achado | Correção |
+|---|---|
+| Duas execuções ao mesmo tempo (DAG diária e completa) podiam perder viagens na marca d'água da analítica | Trava no banco por órgão (`pg_try_advisory_lock`); a segunda execução sai com código 3 |
+| Texto vazio, inválido ou fora do limite no JSON derrubava a janela inteira (confirmado no Postgres) | Funções `f_data`, `f_numero` e `f_inteiro`: valor ruim vira `NULL` na intermediária; o JSON da staging fica intacto. Data só no formato ISO |
+| Id repetido entre páginas da API fazia o upsert falhar (confirmado) | Repetidos descartados com aviso |
+| Chave da API e senhas podiam ir para logs e para `ctl_erro` | Mascaramento (`***`) em toda mensagem; `Config` não mostra segredos no `repr` |
+| Nome de schema vindo do ambiente entrava no SQL sem validação | Validação por expressão regular |
+| Queda de conexão derrubava o tratamento de erro | Vira erro fatal registrado; a execução termina com código 1 |
+| Resposta 200 que não é JSON, `Retry-After` em formato de data, 403 e 404 | Repetida, tratada com padrão e teto, e tratados como erro permanente (401 e 403 abortam) |
+| `schema.sql` pedia lock exclusivo a cada execução | `lock_timeout`, trava de DDL e coluna criada só se faltar |
+| README divergente do código | Corrigido |
+
+Pendências conhecidas, sem correção por decisão ou dependência: DAGs duplicadas e agendamento (fuso, intervalo de 10 dias, pool, segredos), conciliação que só compara a API com o que acabou de gravar (não detecta página intermediária vazia por instabilidade), `UPDATE` sem `WHERE` nas tabelas fato e `obt`, chave de beneficiário por nome + CPF parcial (homônimos), `dim_data` só até 2030 e actions do CI fixadas por tag.
+
 ## 11. Riscos
 | Risco | Mitigação |
 |---|---|
@@ -178,4 +199,4 @@ Regras: a staging nunca recebe regra de negócio; a intermediária pode ser reco
 4. **Fase 4:** painel e, se desejado, enriquecimento com `/servidores` (nome + CPF mascarado).
 
 ## 13. Arquivos do projeto
-Padrão de pastas dos demais projetos: `1-Documentos` (PRD, `referencia_api.md`, `referencia/orgaos_siafi.csv` e `orgaos_siape.csv`), `2-Scripts` (`consulta_viagens.py`, `varredura_2026.py`, `postman/`, `saidas/` não versionada), `3-Etl/dags` (`carga_viagens.py` e `sql/schema.sql`, orquestrados pelo Airflow), `4-DataViz`, `5-Images`. Na raiz: `README.md`, `.env` (segredos, fora do git), `.env.example`, `.gitignore` e `CLAUDE.md` (instruções locais do Claude Code, também fora do git).
+Padrão de pastas dos demais projetos: `1-Documentos` (PRD, `referencia_api.md`, `referencia/orgaos_siafi.csv` e `orgaos_siape.csv`), `2-Scripts` (`consulta_viagens.py`, `varredura_2026.py`, `postman/`, `saidas/` não versionada), `3-Etl/dags` (DAGs, `carga_viagens.py` como ponto de entrada, pacote `scdp/` com `extracao`, `carga`, `transformacao`, `controle`, `janelas`, `pipeline`, `config` e `cli`, e `sql/schema.sql`), `tests/` (unitários e de integração), `4-DataViz`, `5-Images`. Na raiz: `README.md`, `.env` (segredos, fora do git), `.env.example`, `.gitignore` e `CLAUDE.md` (instruções locais do Claude Code, também fora do git).
