@@ -7,7 +7,7 @@ Estado em 19/10/2026: carga testada com o órgão `33000` (MPS). Varredura de 20
 ## Estrutura do projeto
 | Pasta | Conteúdo |
 |---|---|
-| `1-Documentos/` | `PRD.md`, `referencia_api.md` (spec dos 109 endpoints), `dicionario-de-dados-viagens.md`, `perguntas-dono-da-api.md` (com os testes feitos) e `referencia/` (códigos de órgãos SIAFI e SIAPE) |
+| `1-Documentos/` | `PRD.md`, `referencia_api.md` (spec dos 109 endpoints), `dicionario-de-dados-viagens.md`, `contrato-dados-viagens.md` (formato do download e conciliação com a API, 2025 e 2026), `perguntas-dono-da-api.md` (com os testes feitos) e `referencia/` (códigos de órgãos SIAFI e SIAPE) |
 | `2-Scripts/` | Exploração e validação: `consulta_viagens.py`, `varredura_2026.py` e `postman/`. `saidas/` guarda dados gerados (não versionado) |
 | `3-Etl/dags/` | DAGs do Airflow, `carga_viagens.py` (ponto de entrada), o pacote `scdp/` (código da carga) e `sql/schema.sql` (DDL) |
 | `tests/` | Testes unitários e de integração (rodam no CI com PostgreSQL) |
@@ -61,6 +61,8 @@ A API filtra **ida** e **retorno** por duas janelas independentes, cada uma com 
 | Longa | ida M, retorno de M+2 até M+12 | 3 viagens |
 | Anomalias (retorno antes da ida, retorno em 2028) | não consultadas | nada encontrado |
 
+Diagrama do processo: `1-Documentos/diagrama-busca-por-datas.excalidraw` (abre em excalidraw.com), com prévia em `5-Images/diagrama-busca-por-datas.png`.
+
 Desde 2025-01 são 312 janelas (24 meses de ida, incluindo 2 meses futuros, × 13 distâncias), cada uma paginada até a resposta `[]`.
 Em 2026: das 1.460 viagens, 1.323 começam e terminam no mesmo mês, 125 retornam no mês seguinte e 12 terminam de 2 a 6 meses depois. A mais longa teve 181 dias.
 
@@ -89,6 +91,19 @@ Cada janela só vira `OK` se a quantidade devolvida pela API for igual à carreg
 - CPF vem mascarado. Em viagens sigilosas o nome vem como "Informações protegidas por sigilo".
 - `valorTotalViagem` = passagem + diárias + taxa + restituição + outros gastos (este último não existe na API; explica 26 de 1.460 totais que não fecham).
 - Dados atualizados com atraso: a tela do portal informou "dados atualizados até 04/09/2026" em 19/10/2026.
+
+## Links oficiais
+| Para quê | Link |
+|---|---|
+| **Download em lote das viagens (um ZIP por ano, 2011 a 2027)** | https://portaldatransparencia.gov.br/download-de-dados/viagens (ex.: `.../viagens/2025` redireciona para `https://dadosabertos-download.cgu.gov.br/PortalDaTransparencia/saida/viagens/2025_AAAAMMDD_Viagens.zip`) |
+| Dicionário de dados das viagens | https://portaldatransparencia.gov.br/dicionario-de-dados/viagens |
+| API: documentação interativa (Swagger) | https://api.portaldatransparencia.gov.br/swagger-ui/index.html |
+| API: especificação OpenAPI | https://api.portaldatransparencia.gov.br/v3/api-docs |
+| API: página oficial (limites de requisição e termos de uso) | https://portaldatransparencia.gov.br/api-de-dados |
+| API: cadastro da chave | https://portaldatransparencia.gov.br/api-de-dados/cadastrar-email |
+| Consulta de viagens na tela (para conferir os dados) | https://portaldatransparencia.gov.br/viagens/consulta |
+
+O download automatizado com `curl` precisa de um `User-Agent` de navegador. Formato dos arquivos e conciliação com a API: `1-Documentos/contrato-dados-viagens.md`.
 
 ## Decisões e pendências
 - **CPF:** permanece mascarado como a API entrega, em todas as camadas.
