@@ -50,3 +50,6 @@ Thumbs.db
 
 # Template local da Dark Factory: nao versionar
 darkfactory-template/
+
+# downloads oficiais do portal (grandes)
+1-Documentos/*_Viagem.csv

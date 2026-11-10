@@ -45,7 +45,7 @@ Verificado em 20/10/2026 com os downloads oficiais de 2025 (`2025_20260920_Viage
 | Período - Data de início / fim | `dataInicioAfastamento` / `dataFimAfastamento` | sim |
 | Situação, Viagem Urgente, Justificativa | `situacao`, `viagem.urgenciaViagem`, `viagem.justificativaUrgente` | nomes diferentes, mesmo conteúdo |
 
-Consequência: o `valorTotalViagem` da API **é** diárias + passagens + outros gastos do arquivo. As colunas de taxa de agenciamento e de restituição da API estão dentro do valor de passagens do arquivo. Isso explica por que a soma dos componentes da API às vezes ficava abaixo do total (o resto era "outros gastos").
+Consequência: o `valorTotalViagem` da API **é** diárias + passagens + outros gastos do arquivo. No arquivo, o valor de passagens é só a passagem (igual ao `valorTotalPassagem` da API), a **restituição** vem somada dentro de "Valor outros gastos" e a taxa de agenciamento é zero em todas as viagens do MPS. Em 2025: restituição de R$ 18.406,83 em 78 viagens; em 2026: R$ 22.974,62 em 87 viagens. Isso explica por que a soma dos componentes da API às vezes ficava abaixo do total (o resto era "outros gastos").
 
 ## 6. Conciliação executada (MPS, órgão solicitante `33000`, início em 2025)
 | | Arquivo (CSV) | API carregada | Resultado |
@@ -70,7 +70,7 @@ O pico de 538 viagens em setembro de 2025 existe também no arquivo oficial, ent
 | Campo | Viagens | Causa | Quem está "certo" |
 |---|---|---|---|
 | `motivo` | 107 | difere só em acento, pontuação ou espaço (o conteúdo alfanumérico é igual), efeito da conversão do texto para latin-1 no arquivo | sem diferença de conteúdo |
-| `valor_outros_gastos` | 78 | em 78 viagens o arquivo põe a taxa de agenciamento e a restituição em "outros gastos"; nas outras 1.873 ele as põe em "passagens". O `valorTotalViagem` bate em todas | diferença de critério na própria fonte; o total não muda |
+| `valor_outros_gastos` | 78 | o arquivo soma a **restituição** (R$ 18.406,83) em "Valor outros gastos"; a API a traz em campo próprio e calculamos "outros" sem ela. São as 78 viagens com restituição; nas outras 1.873 os dois coincidem. O `valorTotalViagem` bate em todas | diferença de critério entre as fontes; o total não muda |
 | `cpf_mascarado` | 72 | em 50 viagens o arquivo traz o CPF vazio e a API traz mascarado; em 22 viagens sigilosas o arquivo traz o CPF mascarado e a API vem vazia | as fontes discordam; o banco segue a API |
 | `numPcdp` e urgência | 22 | viagens sigilosas: a API devolve `Informações protegidas por sigilo` e urgência `Sigiloso`; o arquivo traz o texto cortado em 13 caracteres e urgência `NÃO` | as fontes discordam; o banco segue a API |
 
@@ -112,7 +112,7 @@ Mesmo método usado em 2025: baixar o arquivo oficial, comparar o layout e confe
 | Campo | Viagens | Causa |
 |---|---|---|
 | `cpf_mascarado` | 146 | em 124 viagens o arquivo traz o CPF vazio e a API traz mascarado (em 37 delas o cargo também vem vazio no arquivo); em 22 viagens sigilosas o arquivo traz o CPF mascarado e a API vem vazia |
-| `valor_outros_gastos` | 87 | o arquivo põe taxa de agenciamento e restituição em "outros gastos" em 87 viagens e em "passagens" nas outras 1.373; o total bate em todas |
+| `valor_outros_gastos` | 87 | mesma causa: o arquivo soma a restituição (R$ 22.974,62) em "outros gastos" nas 87 viagens que a têm; nas outras 1.373 os dois coincidem; o total bate em todas |
 | `numPcdp` e urgência | 22 | viagens sigilosas (a API traz o texto de sigilo e `Sigiloso`; o arquivo traz o texto cortado e `NÃO`) |
 
 As 12 regras do contrato (formato do id e do `numPcdp`, valores possíveis, CPF mascarado, datas, valores, total e ausência de repetição) passam no banco inteiro.
