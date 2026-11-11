@@ -11,7 +11,8 @@ import pendulum
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 
-from scdp.dag_util import comando_carga, comando_reconciliacao
+from scdp.alerta import callback_falha
+from scdp.dag_util import comando_carga, comando_reconciliacao, comando_validar_janelas
 
 FUSO = "America/Sao_Paulo"
 
@@ -29,11 +30,20 @@ with DAG(
         task_id="carga_completa",
         bash_command=comando_carga("--modo", "completo", "--desde", "2025-01"),
         execution_timeout=timedelta(hours=10),
+        on_failure_callback=callback_falha(),
     )
     reconciliar = BashOperator(
         task_id="reconciliar",
         bash_command=comando_reconciliacao(),
         retries=0,
         execution_timeout=timedelta(minutes=10),
+        on_failure_callback=callback_falha(),
     )
-    carga >> reconciliar
+    validar_janelas = BashOperator(
+        task_id="validar_janelas",
+        bash_command=comando_validar_janelas(),
+        retries=0,
+        execution_timeout=timedelta(minutes=10),
+        on_failure_callback=callback_falha(),
+    )
+    carga >> reconciliar >> validar_janelas

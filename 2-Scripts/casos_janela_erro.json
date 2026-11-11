@@ -1,0 +1,82 @@
+[
+  {
+    "nome": "ida_32_dias_01_03_a_02_04",
+    "descricao": "CLAUDE.md: 01/03 a 02/04 da 400 (acima de 1 mes)",
+    "ida_de": "01/03/2026", "ida_ate": "02/04/2026", "ret_de": "01/03/2026", "ret_ate": "31/03/2026",
+    "esperado": {"resultado": "erro_400"}
+  },
+  {
+    "nome": "retorno_32_dias_01_03_a_02_04",
+    "descricao": "o limite vale para o par de retorno tambem",
+    "ida_de": "01/03/2026", "ida_ate": "31/03/2026", "ret_de": "01/03/2026", "ret_ate": "02/04/2026",
+    "esperado": {"resultado": "erro_400"}
+  },
+  {
+    "nome": "ida_2_meses",
+    "ida_de": "01/03/2026", "ida_ate": "30/04/2026", "ret_de": "01/03/2026", "ret_ate": "31/03/2026",
+    "esperado": {"resultado": "erro_400"}
+  },
+  {
+    "nome": "retorno_4_meses_01_09_a_31_12",
+    "descricao": "CLAUDE.md: retorno 01/09 a 31/12 falha com 400",
+    "ida_de": "01/08/2026", "ida_ate": "31/08/2026", "ret_de": "01/09/2026", "ret_ate": "31/12/2026",
+    "esperado": {"resultado": "erro_400"}
+  },
+  {
+    "nome": "parametro_ausente_ida_de",
+    "ida_de": null, "ida_ate": "31/03/2026", "ret_de": "01/03/2026", "ret_ate": "31/03/2026",
+    "esperado": {"resultado": "erro_400"}
+  },
+  {
+    "nome": "parametro_ausente_retorno_ate",
+    "ida_de": "01/03/2026", "ida_ate": "31/03/2026", "ret_de": "01/03/2026", "ret_ate": null,
+    "esperado": {"resultado": "erro_400"}
+  },
+  {
+    "nome": "parametro_ausente_codigo_orgao",
+    "ida_de": "01/03/2026", "ida_ate": "31/03/2026", "ret_de": "01/03/2026", "ret_ate": "31/03/2026",
+    "orgao": null,
+    "esperado": {"resultado": "erro_400"}
+  },
+  {
+    "nome": "formato_de_data_invalido",
+    "ida_de": "2026-03-01", "ida_ate": "2026-03-31", "ret_de": "2026-03-01", "ret_ate": "2026-03-31",
+    "esperado": {"resultado": "erro_400"}
+  },
+  {
+    "nome": "ida_ate_antes_de_ida_de",
+    "descricao": "CLAUDE.md: Ate anterior a De devolve [] sem erro",
+    "ida_de": "31/03/2026", "ida_ate": "01/03/2026", "ret_de": "01/03/2026", "ret_ate": "31/03/2026",
+    "esperado": {"resultado": "vazio", "contagem": 0}
+  },
+  {
+    "nome": "retorno_ate_antes_de_retorno_de",
+    "ida_de": "01/03/2026", "ida_ate": "31/03/2026", "ret_de": "31/03/2026", "ret_ate": "01/03/2026",
+    "esperado": {"resultado": "vazio", "contagem": 0}
+  },
+  {
+    "nome": "retorno_anterior_a_ida",
+    "descricao": "CLAUDE.md: retorno anterior a ida nao retornou nada",
+    "ida_de": "01/08/2026", "ida_ate": "31/08/2026", "ret_de": "01/03/2026", "ret_ate": "31/03/2026",
+    "esperado": {"resultado": "vazio", "contagem": 0}
+  },
+  {
+    "nome": "retorno_7_meses_depois",
+    "descricao": "CLAUDE.md: retornos 7+ meses depois da ida nao retornaram nada (em janelas de ida de 2026 com poucas viagens longas)",
+    "ida_de": "01/03/2026", "ida_ate": "31/03/2026", "ret_de": "01/10/2026", "ret_ate": "31/10/2026",
+    "esperado": {"resultado": "vazio", "contagem": 0}
+  },
+  {
+    "nome": "retorno_em_2028",
+    "descricao": "CLAUDE.md: retorno em 2028 nao retornou nada",
+    "ida_de": "01/03/2026", "ida_ate": "31/03/2026", "ret_de": "01/03/2028", "ret_ate": "31/03/2028",
+    "esperado": {"resultado": "vazio", "contagem": 0}
+  },
+  {
+    "nome": "codigo_orgao_308819",
+    "descricao": "CLAUDE.md: 308819 devolve vazio (nao e SIAFI)",
+    "ida_de": "01/03/2026", "ida_ate": "31/03/2026", "ret_de": "01/03/2026", "ret_ate": "31/03/2026",
+    "orgao": "308819",
+    "esperado": {"resultado": "vazio", "contagem": 0}
+  }
+]

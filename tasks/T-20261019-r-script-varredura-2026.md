@@ -1,0 +1,114 @@
+---
+id: T-20261019-r-script-varredura-2026
+title: "Criar o script de varredura de todas as janelas de 2026"
+status: ready
+format_version: 3
+profile: standard
+effort: XS
+budget_iterations: 15
+agent: any
+parent: (none)
+depends_on: [T-20261019-r-testes-de-janela-no-codigo]
+supersedes: (none)
+touches_paths: []
+creates_paths: []
+source_note: "2-Scripts/varredura_2026.py"
+created: "2026-10-19T00:00:00Z"
+tags: []
+owner: (none)
+priority: P2
+severity: feature
+due_date: (none)
+precondition: (none)
+blocked_reason: (none)
+security_class: (none)
+source_action_item: (none)
+tracker_ref: (none)
+execution_backend: claude
+signed_off: false
+signed_off_by: (none)
+signed_off_at: (none)
+accepted: false
+accepted_by: (none)
+accepted_at: (none)
+---
+
+# Criar o script de varredura de todas as janelas de 2026
+
+> **Why:** Cobrir o ano inteiro combinando ida x retorno.
+
+## Goal
+
+varredura_2026.py: 12 meses de ida x 13 de retorno, retomavel, gravacao atomica.
+
+## Context
+
+TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever.
+
+## Behavior
+
+- **B-1** — GIVEN o orgao do .env WHEN o script roda THEN grava viagens_2026_completo.json e varredura_matriz.json; RETOMAR=1 continua de onde parou
+
+## Success Criteria
+
+```bash
+# eval_1: verificacao da tarefa
+eval_1() {
+  python -m py_compile 2-Scripts/varredura_2026.py && grep -q MESES_RETORNO_APOS_IDA 2-Scripts/varredura_2026.py && grep -q RETOMAR 2-Scripts/varredura_2026.py && grep -q os.replace 2-Scripts/varredura_2026.py
+}
+
+```
+
+## Validation Card
+
+```yaml
+success_criteria:
+  - id: eval_1
+    description: "verificacao da tarefa"
+    runnable: bash
+    check_type: deterministic
+    verifies: [B-1]
+    terminal: true
+    expected_duration_sec: 20
+retry_policy:
+  max_iterations: 15
+  circuit_breaker_no_progress: 3
+  on_terminal_failure: park_with_context
+agent_contract:
+  version: 2
+  read: [intent, behavior, contract, guardrails]
+  produce: [code, tests]
+  required_tools: [git, bash]
+  timeout_minutes: 30
+  sandbox_type: host
+  output_artifacts: []
+  mcp_dependencies: []
+  emit: [pass, fail, retry_with_reason, parked_with_context]
+  backend_metadata: {}
+```
+
+## Exit Check
+
+```bash
+eval_1
+```
+
+## Rollback Plan
+
+Revert only the declared write surface and park the task with context.
+
+## Observability Hooks
+
+(none — no runtime observability required)
+
+## Anti-Patterns
+
+- Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato.
+
+## Do-Not-Touch
+
+- `darkfactory-template`
+
+## Open Questions
+
+(none — this task is fully specified)

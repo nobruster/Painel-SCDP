@@ -9,6 +9,7 @@ import pendulum
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 
+from scdp.alerta import callback_falha
 from scdp.dag_util import CODIGO_OCUPADO, comando_carga, comando_reconciliacao
 
 FUSO = "America/Sao_Paulo"
@@ -28,11 +29,13 @@ with DAG(
         bash_command=comando_carga("--modo", "diario"),
         skip_on_exit_code=CODIGO_OCUPADO,
         execution_timeout=timedelta(hours=5),
+        on_failure_callback=callback_falha(ignorar_codigos=(CODIGO_OCUPADO,)),
     )
     reconciliar = BashOperator(
         task_id="reconciliar",
         bash_command=comando_reconciliacao(),
         retries=0,
         execution_timeout=timedelta(minutes=10),
+        on_failure_callback=callback_falha(),
     )
     carga >> reconciliar

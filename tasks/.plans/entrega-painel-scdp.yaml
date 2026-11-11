@@ -1,0 +1,3429 @@
+api_version: taskspec.dev/v1
+kind: TaskPlan
+approved: true
+metadata:
+  name: entrega-painel-scdp
+  source: 1-Documentos/PRD.md
+units:
+  - id: T-20261019-r-env-e-chave
+    title: "Obter a chave da API e guardar no .env fora do git"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on: []
+    touches_paths: []
+    creates_paths: []
+    source_note: ".env.example"
+    why: "Toda chamada exige o header chave-api-dados."
+    goal: ".env.example documenta as variaveis; .env e ignorado pelo git."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o repositorio"
+        when: "o .env e conferido"
+        then: "o .env nao e versionado e o modelo lista chave, orgao e PG*"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "git check-ignore -q .env && grep -q PORTAL_TRANSPARENCIA_API_KEY .env.example && grep -q CODIGO_ORGAO .env.example"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-spec-swagger
+    title: "Baixar a spec Swagger e gerar a referencia dos 109 endpoints"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-env-e-chave
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/referencia_api.md"
+    why: "Saber o que a API oferece antes de escrever codigo."
+    goal: "referencia_api.md gerada de /v3/api-docs."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "a URL /v3/api-docs"
+        when: "a spec e convertida em markdown"
+        then: "o arquivo lista 109 endpoints e o grupo Viagens a servico"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"109 endpoints\" 1-Documentos/referencia_api.md && grep -qF -- \"Viagens a servi\u00e7o\" 1-Documentos/referencia_api.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-endpoints-de-viagens
+    title: "Mapear os 3 endpoints de viagens e o que nao existe"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-spec-swagger
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/PRD.md"
+    why: "So ha /viagens, /viagens/{id} e /viagens-por-cpf; passagens, trechos e pagamentos nao existem."
+    goal: "Tabela de endpoints no PRD secao 8.1."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "a spec de 109 endpoints"
+        when: "os endpoints de viagens sao procurados"
+        then: "o PRD cita os 3 endpoints e a ausencia dos demais"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"/viagens-por-cpf\" 1-Documentos/PRD.md && grep -qF -- \"N\u00e3o h\u00e1 endpoint de passagens, trechos ou pagamentos\" 1-Documentos/PRD.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-colecao-postman
+    title: "Criar a colecao e o ambiente do Postman"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-endpoints-de-viagens
+    touches_paths: []
+    creates_paths: []
+    source_note: "2-Scripts/postman/postman_collection.json, 2-Scripts/postman/postman_environment.json"
+    why: "Testar a API a mao antes de automatizar."
+    goal: "Colecao com Viagens por orgao, Viagem por ID e Buscar orgao SIAFI."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "a colecao e o ambiente"
+        when: "os JSON sao carregados"
+        then: "a colecao tem 3 requisicoes e o ambiente nao traz a chave preenchida"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -c \"import json;c=json.load(open('2-Scripts/postman/postman_collection.json',encoding='utf-8'));assert len(c['item'])==3;e=json.load(open('2-Scripts/postman/postman_environment.json',encoding='utf-8'));assert all(not v.get('value') or 'chave' not in v.get('key','').lower() for v in e['values'])\""
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-script-consulta-simples
+    title: "Criar o script de busca de viagens por intervalo de datas"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-colecao-postman
+    touches_paths: []
+    creates_paths: []
+    source_note: "2-Scripts/consulta_viagens.py"
+    why: "Primeiro contato real com a API: buscar um intervalo e paginar ate []."
+    goal: "consulta_viagens.py le o .env, pagina de 15 em 15 e imprime id, datas, nome e valor."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "janela de 01/09 a 30/09/2026 e o orgao do .env"
+        when: "o script roda"
+        then: "pagina ate a lista vazia, com pausa de 0,7 s entre chamadas"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m py_compile 2-Scripts/consulta_viagens.py && grep -q dataIdaDe 2-Scripts/consulta_viagens.py && grep -q 'time.sleep' 2-Scripts/consulta_viagens.py"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-teste-autenticacao
+    title: "Testar a autenticacao com o header da chave"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-script-consulta-simples
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/perguntas-dono-da-api.md"
+    why: "Confirmar que a chave funciona e que sem ela vem 401."
+    goal: "Registro do teste de autenticacao: 200 com a chave."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "a chave do .env"
+        when: "GET /viagens com o header"
+        then: "retorna 200"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"Autentica\u00e7\u00e3o\" 1-Documentos/perguntas-dono-da-api.md && grep -qF -- \"chave-api-dados\" 1-Documentos/perguntas-dono-da-api.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-jan-dentro-do-mes
+    title: "Testar a busca com ida e retorno dentro do mesmo mes"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-teste-autenticacao
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/perguntas-dono-da-api.md"
+    why: "Era a pergunta mais simples: uma janela de 1 mes inteiro."
+    goal: "Agosto/2026: ida e retorno de 01/08 a 31/08."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "orgao 33000"
+        when: "a busca e paginada"
+        then: "142 viagens em 10 paginas (9 de 15 e a decima com 7)"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"142 viagens em 10 p\u00e1ginas\" 1-Documentos/perguntas-dono-da-api.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-jan-fim-da-paginacao
+    title: "Testar o fim da paginacao"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-jan-dentro-do-mes
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/perguntas-dono-da-api.md"
+    why: "A carga depende de saber quando parar."
+    goal: "Pedir a pagina 11 de agosto."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "agosto com 10 paginas"
+        when: "pagina 11 e pedida"
+        then: "200 com [] ; a 11a pagina e o criterio de parada"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"a 11\u00aa `[]`\" 1-Documentos/perguntas-dono-da-api.md && grep -qF -- \"Fim da pagina\u00e7\u00e3o\" 1-Documentos/perguntas-dono-da-api.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-jan-mes-mais-1-e-mais-3
+    title: "Testar ida em marco com retorno em marco, abril e junho"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-jan-dentro-do-mes
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/perguntas-dono-da-api.md"
+    why: "Viagem que cruza o mes so aparece combinando as janelas."
+    goal: "Combinar mes de ida x mes de retorno (+0, +1, +3)."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "ida 01-31/03"
+        when: "o retorno muda para marco, abril e junho"
+        then: "312, 18 e 3 viagens"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"312 / 18 / 3\" 1-Documentos/perguntas-dono-da-api.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-jan-mes-mais-12
+    title: "Testar o retorno ate 12 meses depois da ida"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-jan-mes-mais-1-e-mais-3
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/perguntas-dono-da-api.md, 1-Documentos/PRD.md"
+    why: "Descobrir ate onde uma viagem longa e alcancavel."
+    goal: "Varrer retorno de +0 ate +12 meses; viagem mais longa 181 dias."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "ida em cada mes de 2026"
+        when: "o retorno vai ate +12 meses"
+        then: "so 26 combinacoes tem dados; 7 meses ou mais nao devolve nada; maior viagem 181 dias"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"156 combina\u00e7\u00f5es\" 1-Documentos/perguntas-dono-da-api.md && grep -qF -- \"181 dias\" 1-Documentos/perguntas-dono-da-api.md && grep -qF -- \"7 a 12 | 0\" 1-Documentos/PRD.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-jan-limite-de-1-mes
+    title: "Testar o limite de um mes por par de datas"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-jan-mes-mais-12
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/perguntas-dono-da-api.md"
+    why: "A API recusa periodo maior que 1 mes; precisamos do limite exato."
+    goal: "Testar 01/03-01/04, 01/03-02/04, retorno de 2 e 4 meses."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "pares de datas de tamanhos diferentes"
+        when: "cada par e enviado"
+        then: "31 dias e aceito; 32 dias, 2 meses e 4 meses dao 400 com a mensagem O periodo deve ser de no maximo 1 mes"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"01/03 a 02/04\" 1-Documentos/perguntas-dono-da-api.md && grep -qF -- \"O per\u00edodo deve ser de no m\u00e1ximo 1 m\u00eas\" 1-Documentos/perguntas-dono-da-api.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-jan-menor-que-um-mes
+    title: "Testar janela menor que um mes"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-jan-limite-de-1-mes
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/perguntas-dono-da-api.md"
+    why: "Saber se da para consultar por semana."
+    goal: "Ida 02 a 08/03."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "janela de uma semana"
+        when: "a busca e feita"
+        then: "94 viagens"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"94 viagens\" 1-Documentos/perguntas-dono-da-api.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-jan-dia-unico
+    title: "Testar janela de um unico dia (De = Ate)"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-jan-menor-que-um-mes
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/perguntas-dono-da-api.md"
+    why: "Datas inclusivas permitem consultar um dia."
+    goal: "Ida 04/03 a 04/03 e 03/03 a 03/03."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "De igual a Ate"
+        when: "a busca e feita"
+        then: "41 viagens em 04/03 e 0 em 03/03, conferindo com os dados"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"41 viagens\" 1-Documentos/perguntas-dono-da-api.md && grep -qF -- \"03/03 devolveu 0\" 1-Documentos/perguntas-dono-da-api.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-jan-ate-antes-de-de
+    title: "Testar Ate anterior a De"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-jan-dia-unico
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/perguntas-dono-da-api.md"
+    why: "Saber se a API acusa erro ou devolve vazio."
+    goal: "Ida 31/03 a 01/03."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "data final antes da inicial"
+        when: "a busca e feita"
+        then: "[] sem erro"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"`Ate` anterior a `De`\" 1-Documentos/perguntas-dono-da-api.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-jan-parametros-obrigatorios
+    title: "Testar parametros obrigatorios"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-jan-ate-antes-de-de
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/perguntas-dono-da-api.md"
+    why: "Descobrir o que e obrigatorio de verdade."
+    goal: "Omitir as datas de retorno e depois o codigoOrgao."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "chamadas incompletas"
+        when: "elas sao enviadas"
+        then: "400 citando dataRetornoDe e codigoOrgao"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"Required parameter 'dataRetornoDe'\" 1-Documentos/perguntas-dono-da-api.md && grep -qF -- \"Required parameter 'codigoOrgao'\" 1-Documentos/perguntas-dono-da-api.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-jan-anomalias
+    title: "Testar retorno antes da ida e retorno em 2028"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-jan-parametros-obrigatorios
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/perguntas-dono-da-api.md"
+    why: "Definir o que nao precisa ser varrido."
+    goal: "Retorno 1 a 3 meses antes da ida; retorno 7+ meses depois; ano 2028."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "combinacoes anomalas"
+        when: "elas sao consultadas"
+        then: "[] em todas, entao ficam fora do planejamento"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"Retorno antes da ida\" 1-Documentos/perguntas-dono-da-api.md && grep -qF -- \"Retorno muito depois\" 1-Documentos/perguntas-dono-da-api.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-jan-repetibilidade
+    title: "Repetir a varredura para provar que e estavel"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-jan-anomalias
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/perguntas-dono-da-api.md"
+    why: "Paginacao instavel perderia registro sem avisar."
+    goal: "Duas varreduras completas e agosto repetido."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "a mesma consulta duas vezes"
+        when: "os ids sao comparados"
+        then: "mesmos 1.460 ids, 0 diferencas; agosto com os mesmos 142 ids"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"0 diferen\u00e7as\" 1-Documentos/perguntas-dono-da-api.md && grep -qF -- \"mesmos 142 ids\" 1-Documentos/perguntas-dono-da-api.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-jan-detalhe-por-id
+    title: "Testar /viagens/{id} e a instabilidade 504"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-jan-repetibilidade
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/perguntas-dono-da-api.md"
+    why: "Ver se o detalhe traz algo alem da lista."
+    goal: "Buscar 3 viagens por id."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "ids da lista"
+        when: "o detalhe e pedido"
+        then: "objeto identico ao da lista; 504 em 4 tentativas seguidas e depois 200"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"objeto id\u00eantico ao da lista\" 1-Documentos/perguntas-dono-da-api.md && grep -qF -- \"504 em 4 tentativas\" 1-Documentos/perguntas-dono-da-api.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-testes-de-janela-no-codigo
+    title: "Transformar as descobertas de janela em testes do planejador"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-jan-detalhe-por-id
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/scdp/janelas.py"
+    why: "O planejamento precisa cobrir dentro do mes, mes+1 e ate mes+12."
+    goal: "test_janelas cobre faixa, virada de ano e distancias 0 a 12."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o planejador de janelas"
+        when: "os testes rodam"
+        then: "dentro do mes, virada e longas estao cobertas"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m pytest tests/test_janelas.py -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-script-varredura-2026
+    title: "Criar o script de varredura de todas as janelas de 2026"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-testes-de-janela-no-codigo
+    touches_paths: []
+    creates_paths: []
+    source_note: "2-Scripts/varredura_2026.py"
+    why: "Cobrir o ano inteiro combinando ida x retorno."
+    goal: "varredura_2026.py: 12 meses de ida x 13 de retorno, retomavel, gravacao atomica."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o orgao do .env"
+        when: "o script roda"
+        then: "grava viagens_2026_completo.json e varredura_matriz.json; RETOMAR=1 continua de onde parou"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m py_compile 2-Scripts/varredura_2026.py && grep -q MESES_RETORNO_APOS_IDA 2-Scripts/varredura_2026.py && grep -q RETOMAR 2-Scripts/varredura_2026.py && grep -q os.replace 2-Scripts/varredura_2026.py"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-resultado-varredura-2026
+    title: "Registrar o resultado da varredura de 2026"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-script-varredura-2026
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/PRD.md"
+    why: "Numero de referencia para conferir toda carga futura."
+    goal: "1.460 viagens com ida em 2026, por mes."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "a varredura concluida"
+        when: "os totais por mes sao somados"
+        then: "Jan 90, Fev 183, Mar 333, Abr 164, Mai 224, Jun 202, Jul 113, Ago 145, Set 6"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"1.460\" 1-Documentos/PRD.md && grep -qF -- \"Jan 90\" 1-Documentos/PRD.md && grep -qF -- \"Mar 333\" 1-Documentos/PRD.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-distancia-ida-retorno
+    title: "Agrupar as viagens pela distancia entre ida e retorno"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-resultado-varredura-2026
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/PRD.md"
+    why: "Dimensionar quantas janelas valem a pena."
+    goal: "Histograma de 0 a 12 meses."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "as 1.460 viagens"
+        when: "elas sao agrupadas"
+        then: "1.323 no mesmo mes, 125 com +1, 5, 4, 0, 2, 1 e nada de 7 a 12"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"1.323\" 1-Documentos/PRD.md && grep -qF -- \"| 125 |\" 1-Documentos/PRD.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-integridade-dos-dados
+    title: "Validar a integridade das 1.460 viagens"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-resultado-varredura-2026
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/PRD.md"
+    why: "Dado ruim na origem precisa ser conhecido antes da carga."
+    goal: "Ids e PCDP unicos, datas completas, fim >= inicio."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "as 1.460 viagens"
+        when: "as checagens rodam"
+        then: "nenhuma duplicidade e nenhuma data faltando"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"ids e PCDP \u00fanicos\" 1-Documentos/PRD.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-regra-do-valor-total
+    title: "Descobrir a formula do valor total da viagem"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-integridade-dos-dados
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/perguntas-dono-da-api.md"
+    why: "O total nem sempre e a soma dos componentes expostos."
+    goal: "total = passagem + diarias + taxa + restituicao + outros gastos."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "as 1.460 viagens"
+        when: "o total e comparado com a soma"
+        then: "confere em 1.434; nas 26 restantes a diferenca e outros gastos"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"1.434\" 1-Documentos/perguntas-dono-da-api.md && grep -qF -- \"Outros Gastos\" 1-Documentos/perguntas-dono-da-api.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-enums-ug-e-sigilo
+    title: "Levantar enums, unidades gestoras e viagens sigilosas"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-regra-do-valor-total
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/perguntas-dono-da-api.md"
+    why: "Saber que valores tratar na silver."
+    goal: "situacao, tipoViagem, urgenciaViagem, UG -1 e -11, nome sigiloso."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "as viagens de 2026"
+        when: "os valores distintos sao listados"
+        then: "dominios e codigos sem UG real registrados"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"-11\" 1-Documentos/perguntas-dono-da-api.md && grep -qF -- \"Sigiloso\" 1-Documentos/perguntas-dono-da-api.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-escopo-orgaos-descoberto
+    title: "Descobrir que codigoOrgao filtra a entidade e nao o ministerio"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-enums-ug-e-sigilo
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/PRD.md"
+    why: "Consultar so 33000 perde o INSS."
+    goal: "Comparar 33000, 37202 e 33206 em agosto; Marinha x Defesa."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "agosto/2026"
+        when: "cada orgao e consultado"
+        then: "142, 1.265 e 22 viagens; Defesa 52000 so 1 contra 7 da Marinha 52131"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"37202\" 1-Documentos/PRD.md && grep -qF -- \"33206\" 1-Documentos/PRD.md && grep -qF -- \"1.265\" 1-Documentos/PRD.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-codigo-308819
+    title: "Investigar o codigo 308819"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-escopo-orgaos-descoberto
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/perguntas-dono-da-api.md"
+    why: "Foi informado como orgao mas nao existe."
+    goal: "Procurar em /viagens, SIAFI e SIAPE."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o codigo 308819"
+        when: "ele e consultado"
+        then: "200 com [] e ausente nas duas listas"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"308819\" 1-Documentos/perguntas-dono-da-api.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-listas-de-orgaos
+    title: "Baixar as listas de orgaos SIAFI e SIAPE"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-codigo-308819
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/referencia/orgaos_siafi.csv, 1-Documentos/referencia/orgaos_siape.csv"
+    why: "Resolver codigo <-> nome de orgao sem chamar a API."
+    goal: "CSV com 766 orgaos SIAFI e 641 SIAPE."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "/orgaos-siafi e /orgaos-siape"
+        when: "elas sao paginadas ate []"
+        then: "766 e 641 linhas mais o cabecalho"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "test \"$(wc -l < 1-Documentos/referencia/orgaos_siafi.csv | tr -d \" \")\" -ge 767 && test \"$(wc -l < 1-Documentos/referencia/orgaos_siape.csv | tr -d \" \")\" -ge 642"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-dicionario-de-dados
+    title: "Ler o dicionario oficial e mapear para a API"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-listas-de-orgaos
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/dicionario-de-dados-viagens.md"
+    why: "Descobrir o que a API nao expoe (trechos, passagens, pagamentos, outros gastos)."
+    goal: "Dicionario dos 4 arquivos e correspondencia com /viagens."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o dicionario oficial"
+        when: "ele e comparado com a API"
+        then: "ha as secoes dos 4 arquivos e a correspondencia com a API"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"## Arquivo Viagem\" 1-Documentos/dicionario-de-dados-viagens.md && grep -qF -- \"## Arquivo Trecho\" 1-Documentos/dicionario-de-dados-viagens.md && grep -qF -- \"## Correspond\u00eancia com a API\" 1-Documentos/dicionario-de-dados-viagens.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-limites-de-uso
+    title: "Registrar os limites de requisicao e a politica de uso"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-dicionario-de-dados
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/PRD.md"
+    why: "Acima do limite o token pode ser suspenso."
+    goal: "400/min das 6h as 23h59, 700/min de 0h as 5h59, usando 50%."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o texto oficial"
+        when: "ele e registrado"
+        then: "o PRD cita os dois limites e os 50%"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"400 req/min\" 1-Documentos/PRD.md && grep -qF -- \"700 req/min\" 1-Documentos/PRD.md && grep -qF -- \"50%\" 1-Documentos/PRD.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-avaliacao-download-em-lote
+    title: "Avaliar o download em lote como alternativa"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-limites-de-uso
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/PRD.md"
+    why: "O portal recomenda planilhas para o conjunto completo."
+    goal: "Registrar os 4 arquivos por ano e o que ficou nao validado."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "a pagina oficial"
+        when: "ela e lida"
+        then: "PRD cita os 4 arquivos e que formato e encoding nao foram verificados"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"download em lote\" 1-Documentos/PRD.md && grep -qF -- \"Formato, tamanho e encoding\" 1-Documentos/PRD.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-perguntas-ao-dono-da-api
+    title: "Escrever as perguntas para o dono da API"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-avaliacao-download-em-lote
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/perguntas-dono-da-api.md"
+    why: "Duvidas que a experimentacao nao responde."
+    goal: "Perguntas priorizadas A/B/C em 9 grupos mais os testes feitos."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "os achados"
+        when: "o documento e escrito"
+        then: "ha 9 grupos de perguntas e a secao de testes realizados"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"## 1. Completude\" 1-Documentos/perguntas-dono-da-api.md && grep -qF -- \"## 9. Mudan\u00e7as\" 1-Documentos/perguntas-dono-da-api.md && grep -qF -- \"## 10. Testes realizados\" 1-Documentos/perguntas-dono-da-api.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-prd-v01
+    title: "Escrever o PRD v0.1"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-perguntas-ao-dono-da-api
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/PRD.md"
+    why: "Fixar escopo, requisitos e decisoes em aberto."
+    goal: "PRD com contexto, escopo, RF/RNF, arquitetura e decisoes."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "tudo que foi descoberto"
+        when: "o PRD e escrito"
+        then: "ha secoes de requisitos funcionais, nao funcionais e decisoes em aberto"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"## 6. Requisitos funcionais\" 1-Documentos/PRD.md && grep -qF -- \"## 7. Requisitos n\u00e3o funcionais\" 1-Documentos/PRD.md && grep -qF -- \"## 5. Decis\u00f5es de escopo em aberto\" 1-Documentos/PRD.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-schema-staging
+    title: "Criar a staging com o JSON como recebido"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-prd-v01
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/sql/schema.sql"
+    why: "Bronze sem regra de negocio."
+    goal: "stg_viagem com payload jsonb, hash_registro e janela de origem."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o schema.sql"
+        when: "ele e lido"
+        then: "stg_viagem tem id, payload e hash_registro"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"stg_viagem\" 3-Etl/dags/sql/schema.sql && grep -qF -- \"payload\" 3-Etl/dags/sql/schema.sql && grep -qF -- \"hash_registro\" 3-Etl/dags/sql/schema.sql && REQUIRE_DB_TESTS=1 python -m pytest tests/test_banco.py -k staging_guarda -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 60
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-schema-controle
+    title: "Criar as tabelas de controle por janela, execucao e erro"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-schema-staging
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/sql/schema.sql"
+    why: "Provar o que foi e o que nao foi carregado."
+    goal: "ctl_janela, ctl_execucao, ctl_erro, ctl_erro_historico, ctl_camada e ctl_schema."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o schema.sql"
+        when: "ele e lido"
+        then: "as seis tabelas existem"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"ctl_janela\" 3-Etl/dags/sql/schema.sql && grep -qF -- \"ctl_execucao\" 3-Etl/dags/sql/schema.sql && grep -qF -- \"ctl_erro_historico\" 3-Etl/dags/sql/schema.sql && grep -qF -- \"ctl_camada\" 3-Etl/dags/sql/schema.sql && grep -qF -- \"ctl_schema\" 3-Etl/dags/sql/schema.sql"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-schema-intermediaria
+    title: "Criar a silver tipada com campos derivados"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-schema-controle
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/sql/schema.sql"
+    why: "Colunas tipadas e valor_outros_gastos derivado."
+    goal: "int_viagem com dias_afastamento e valor_outros_gastos."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o schema.sql"
+        when: "ele e lido"
+        then: "int_viagem tem os valores em numeric(15,2)"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"int_viagem\" 3-Etl/dags/sql/schema.sql && grep -qF -- \"dias_afastamento\" 3-Etl/dags/sql/schema.sql && grep -qF -- \"valor_outros_gastos\" 3-Etl/dags/sql/schema.sql && grep -qF -- \"numeric(15,2)\" 3-Etl/dags/sql/schema.sql"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-conversoes-tolerantes
+    title: "Criar as funcoes f_data, f_numero e f_inteiro"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-schema-intermediaria
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/sql/schema.sql"
+    why: "Texto vazio ou invalido derrubava a janela inteira."
+    goal: "Valor ruim vira NULL e o JSON da staging fica intacto."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "dados sujos no payload"
+        when: "a silver e atualizada"
+        then: "a janela nao cai e o aviso e registrado"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "REQUIRE_DB_TESTS=1 python -m pytest tests/test_robustez.py -k 'dados_sujos or aviso_quando or arredondado or estoura' -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 90
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-schema-analitica
+    title: "Criar a gold: dimensoes, fato e one big table"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-conversoes-tolerantes
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/sql/schema.sql"
+    why: "Modelo estrela e obt_viagem para BI direto."
+    goal: "dim_data/orgao/ug/beneficiario/perfil_viagem, fct_viagem e obt_viagem, sem o campo motivo."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o schema.sql"
+        when: "ele e lido"
+        then: "as tabelas existem e fct_viagem nao tem motivo"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"dim_orgao\" 3-Etl/dags/sql/schema.sql && grep -qF -- \"dim_ug\" 3-Etl/dags/sql/schema.sql && grep -qF -- \"dim_beneficiario\" 3-Etl/dags/sql/schema.sql && grep -qF -- \"dim_perfil_viagem\" 3-Etl/dags/sql/schema.sql && grep -qF -- \"fct_viagem\" 3-Etl/dags/sql/schema.sql && grep -qF -- \"obt_viagem\" 3-Etl/dags/sql/schema.sql && ! sed -n '/TABLE IF NOT EXISTS @ANA@.fct_viagem/,/^);/p' 3-Etl/dags/sql/schema.sql | grep -q motivo"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-schema-versionado
+    title: "Versionar o schema por hash"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-schema-analitica
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/sql/schema.sql"
+    why: "Reaplicar o DDL a cada execucao pedia lock exclusivo."
+    goal: "ctl_schema guarda o hash e so reaplica quando o arquivo muda."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o mesmo schema.sql duas vezes"
+        when: "o schema e aplicado"
+        then: "a segunda aplicacao nao faz nada; forcar e idempotente"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "REQUIRE_DB_TESTS=1 python -m pytest tests/test_robustez.py -k 'schema' -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 90
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-config
+    title: "Criar a configuracao a partir do .env"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-schema-versionado
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/scdp/config.py"
+    why: "Ler chave, orgao, banco e schemas sem vazar segredo."
+    goal: "Config valida schemas, exige https e nao mostra segredos no repr."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "variaveis de ambiente"
+        when: "a configuracao e carregada"
+        then: "obrigatorias exigidas, schema validado, segredos mascarados"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m pytest tests/test_config.py -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-extracao-retry
+    title: "Extracao: tentativas com espera para 504, 429 e queda de rede"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-config
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/scdp/extracao.py"
+    why: "504 e frequente no servidor deles."
+    goal: "Ate 8 tentativas com espera crescente e Retry-After no 429."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "respostas 504, 429 e erros de rede"
+        when: "o cliente consulta"
+        then: "repete com espera e esgota as tentativas com erro claro"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m pytest tests/test_extracao.py -k '504 or 429 or queda or esgota or retry_after' -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-extracao-paginacao
+    title: "Extracao: paginar ate [] com trava contra loop"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-extracao-retry
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/scdp/extracao.py"
+    why: "API que ignora a pagina giraria para sempre."
+    goal: "Para na lista vazia, na pagina repetida, no nao-lista e apos 1.000 paginas."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "paginas normais e defeituosas"
+        when: "o cliente pagina"
+        then: "monta as datas certas e nunca entra em loop"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m pytest tests/test_extracao.py -k 'pagina or limite_de_paginas or nao_e_lista' -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-extracao-seguranca
+    title: "Extracao: nao vazar a chave"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-extracao-paginacao
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/scdp/extracao.py"
+    why: "O requests seguia redirecionamento reenviando o cabecalho."
+    goal: "Sem redirecionamento, erro mascarado e corte seguro de mensagem."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "redirecionamento e corpo de erro que ecoa a chave"
+        when: "o cliente consulta"
+        then: "a chave nunca aparece em log ou erro"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m pytest tests/test_extracao.py -k 'redirecionamento or mascarado or cortada or permanentes or 403' -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-extracao-ritmo
+    title: "Extracao: pausa conforme o limite do horario de Brasilia"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-extracao-seguranca
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/scdp/extracao.py"
+    why: "400/min de dia e 700/min de madrugada, usando 50%."
+    goal: "A pausa entre chamadas segue a faixa horaria."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "horario diurno e noturno"
+        when: "a pausa e calculada"
+        then: "e maior de dia que de madrugada"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m pytest tests/test_extracao.py -k pausa -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-janelas-planejamento
+    title: "Planejar janelas mes de ida x mes de retorno ate +12"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-extracao-ritmo
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/scdp/janelas.py"
+    why: "Traduz a descoberta da API em codigo."
+    goal: "planejar() gera 13 distancias por mes de ida, incluindo meses futuros."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "desde 2025-01"
+        when: "o plano e gerado"
+        then: "312 janelas, dentro do mes, virada e longas"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m pytest tests/test_janelas.py -k 'planejamento or faixa or add_meses' -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-janelas-modos
+    title: "Modo diario e modo completo"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-janelas-planejamento
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/scdp/janelas.py"
+    why: "Diario rel\u00ea so o recente; completo rel\u00ea tudo."
+    goal: "precisa_ler decide por modo, estado e janela recente."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "janelas com estados variados"
+        when: "o modo e aplicado"
+        then: "diario le recentes e pendentes; completo le tudo"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m pytest tests/test_janelas.py -k 'diario or completo' -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-janelas-retomada
+    title: "Retomar de onde parou"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-janelas-modos
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/scdp/janelas.py, 3-Etl/dags/scdp/pipeline.py"
+    why: "Falha no meio nao pode obrigar a reler tudo."
+    goal: "Janelas com erro ou pendentes vem primeiro."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "uma execucao interrompida"
+        when: "a proxima execucao roda"
+        then: "retoma pela janela com erro"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m pytest tests/test_janelas.py tests/test_pipeline.py -k retoma -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-staging-hash-upsert
+    title: "Staging incremental por hash"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-janelas-retomada
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/scdp/transformacao.py"
+    why: "So gravar o que e novo ou mudou."
+    goal: "hash independente da ordem das chaves; classificar novos, alterados e iguais; remover repetidos."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "registros novos, alterados e iguais"
+        when: "a carga classifica"
+        then: "upsert por id so do que mudou"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m pytest tests/test_transformacao.py -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-controle-por-janela
+    title: "Controle por janela: status e conciliacao"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-staging-hash-upsert
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/scdp/controle.py, 3-Etl/dags/scdp/pipeline.py"
+    why: "Fechar a janela como OK so se qtd_api = qtd_carregada."
+    goal: "Status, contagens, tentativas e erro por janela."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "janela que falha e e corrigida"
+        when: "a janela e processada"
+        then: "o status acompanha a conciliacao"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m pytest tests/test_pipeline.py -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-registro-de-erros
+    title: "Registrar erros e historico"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-controle-por-janela
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/scdp/erros.py, 3-Etl/dags/scdp/controle.py"
+    why: "Erro precisa sair da tabela quando corrigido, sem perder historico."
+    goal: "ctl_erro, ctl_erro_historico e codigos permanentes 400/401/403/404."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "erros de API e de banco"
+        when: "a carga roda"
+        then: "erro registrado, removido ao corrigir e guardado no historico"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m pytest tests/test_erros.py -q && REQUIRE_DB_TESTS=1 python -m pytest tests/test_robustez.py -k 'registrado or erro_401 or interrompida or analitica' -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 90
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-silver-incremental
+    title: "Silver incremental"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-registro-de-erros
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/scdp/transformacao.py"
+    why: "Atualizar so as viagens novas ou alteradas."
+    goal: "atualizar_intermediaria por ids."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "carga ponta a ponta"
+        when: "a segunda leitura roda"
+        then: "0 novos e 0 alterados na releitura"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "REQUIRE_DB_TESTS=1 python -m pytest tests/test_banco.py -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 90
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-gold-incremental
+    title: "Gold incremental por marca d'agua"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-silver-incremental
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/scdp/transformacao.py"
+    why: "Nao reprocessar a analitica inteira."
+    goal: "ctl_camada guarda a marca; filtro > evita reprocessar empate."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "intermediaria alterada"
+        when: "atualizar_analitica roda"
+        then: "sem mudanca processa 0; tudo=True reconstrui"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "REQUIRE_DB_TESTS=1 python -m pytest tests/test_banco.py -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 90
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-trava-de-execucao
+    title: "Trava no banco contra execucoes simultaneas"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-gold-incremental
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/scdp/carga.py, 3-Etl/dags/scdp/pipeline.py"
+    why: "Duas execucoes perdiam viagens na marca d'agua."
+    goal: "pg_try_advisory_lock por conjunto de schemas; saida 3 se ocupado."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "duas execucoes ao mesmo tempo"
+        when: "a segunda inicia"
+        then: "sai com codigo 3 e a trava e liberada mesmo com excecao"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "REQUIRE_DB_TESTS=1 python -m pytest tests/test_robustez.py -k 'uma_execucao or trava or orfa or sigterm or conexao_perdida' -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 90
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-cli
+    title: "CLI da carga: modos, --desde e --reconstruir-silver"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-trava-de-execucao
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/scdp/cli.py, 3-Etl/dags/carga_viagens.py"
+    why: "Um ponto de entrada unico para o Airflow e para uso manual."
+    goal: "python -I carga_viagens.py --modo diario|completo [--desde YYYY-MM]."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "argumentos invalidos e validos"
+        when: "a CLI roda"
+        then: "codigo 2 para configuracao e --desde invalidos; 143 em SIGTERM"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m pytest tests/test_cli_e_dags.py -k 'desde or configuracao_ausente or sigterm' -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-views-de-observabilidade
+    title: "Views de observabilidade vw_ctl_*"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-cli
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/sql/schema.sql"
+    why: "Ver saude, erros, execucoes e pendencias sem escrever SQL."
+    goal: "vw_ctl_saude, vw_ctl_erros_abertos, vw_ctl_execucoes, vw_ctl_pendencias, vw_ctl_tardios."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o schema.sql"
+        when: "ele e lido"
+        then: "as views existem"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"vw_ctl_saude\" 3-Etl/dags/sql/schema.sql && grep -qF -- \"vw_ctl_erros_abertos\" 3-Etl/dags/sql/schema.sql && grep -qF -- \"vw_ctl_execucoes\" 3-Etl/dags/sql/schema.sql && grep -qF -- \"vw_ctl_pendencias\" 3-Etl/dags/sql/schema.sql && grep -qF -- \"vw_ctl_tardios\" 3-Etl/dags/sql/schema.sql"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-seguranca-de-segredos
+    title: "Mascarar segredos em log e na tabela de erros"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-views-de-observabilidade
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/scdp/config.py, 3-Etl/dags/scdp/erros.py"
+    why: "Chave e senha iam parar em log e em ctl_erro."
+    goal: "sanitizar() ordena do maior para o menor e decodifica percent-encoding."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "senha curta, com % e em DSN"
+        when: "a mensagem e sanitizada"
+        then: "nenhum segredo sobra e o DETAIL do Postgres nao e gravado"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m pytest tests/test_config.py tests/test_erros.py -k 'sanitizar or repr or descrever or vaza' -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-dag-util
+    title: "Montar o comando da DAG sem importar o Airflow"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-seguranca-de-segredos
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/scdp/dag_util.py"
+    why: "Caminho do projeto e Python do worker resolvidos pelo bash, nao pelo scheduler."
+    goal: "comando_carga com shlex.quote e variaveis PAINEL_SCDP_HOME/PYTHON."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "argumentos com espaco"
+        when: "o comando e montado"
+        then: "escapa argumentos e funciona com caminho com espaco"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m pytest tests/test_cli_e_dags.py -k 'comando_da_dag' -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-dag-diaria
+    title: "DAG diaria as 02:00"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-dag-util
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/dag_carga_diaria.py"
+    why: "Carga incremental diaria na faixa de 700 req/min."
+    goal: "scdp_carga_diaria, America/Sao_Paulo, skip em codigo 3."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o arquivo da DAG"
+        when: "ele e inspecionado"
+        then: "agenda 0 2 * * *, catchup falso e skip_on_exit_code"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m pytest tests/test_cli_e_dags.py -k 'configuracao_das_dags or dag_ids' -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-dag-completa
+    title: "DAG completa nos dias 1, 11 e 21"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-dag-diaria
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/dag_carga_completa.py"
+    why: "Releitura de todas as janelas para pegar registros tardios."
+    goal: "scdp_carga_completa as 03:30, sem skip."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o arquivo da DAG"
+        when: "ele e inspecionado"
+        then: "agenda 30 3 1,11,21 * * e sem skip_on_exit_code"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m pytest tests/test_cli_e_dags.py -k 'configuracao_das_dags or dag_ids' -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-airflowignore
+    title: "Impedir o scheduler de importar o pacote scdp como DAG"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-dag-completa
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/.airflowignore"
+    why: "Arquivos que nao sao DAG geravam erro de importacao."
+    goal: ".airflowignore lista o que o Airflow deve ignorar."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "a pasta dags"
+        when: "o arquivo e lido"
+        then: "scdp, sql e carga_viagens estao listados"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -q scdp 3-Etl/dags/.airflowignore"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-ci-github
+    title: "CI no GitHub com Postgres e gitleaks"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-airflowignore
+    touches_paths: []
+    creates_paths: []
+    source_note: ".github/workflows/ci.yml"
+    why: "Os testes de banco precisam rodar a cada push."
+    goal: "Jobs testes (Postgres 15, REQUIRE_DB_TESTS=1) e segredos (gitleaks)."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o ci.yml"
+        when: "ele e lido"
+        then: "tem postgres, REQUIRE_DB_TESTS e gitleaks"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"postgres:15\" .github/workflows/ci.yml && grep -qF -- \"REQUIRE_DB_TESTS\" .github/workflows/ci.yml && grep -qF -- \"gitleaks\" .github/workflows/ci.yml"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-revisao-independente-1
+    title: "Primeira rodada de revisao independente"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-ci-github
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/PRD.md"
+    why: "Quatro revisores somente leitura acharam falhas de concorrencia e de dado sujo."
+    goal: "Achados e correcoes da secao 10.2."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o codigo da carga"
+        when: "ele e revisado"
+        then: "trava, funcoes tolerantes, mascaramento e validacao de schema corrigidos"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"## 10.2\" 1-Documentos/PRD.md && grep -qF -- \"pg_try_advisory_lock\" 1-Documentos/PRD.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-revisao-independente-2
+    title: "Segunda rodada de revisao independente"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-revisao-independente-1
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/PRD.md"
+    why: "Revalidar as correcoes e achar o que sobrou."
+    goal: "Achados e correcoes da secao 10.3."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o codigo corrigido"
+        when: "ele e revisado de novo"
+        then: "redirecionamento, paginacao infinita, DETAIL do Postgres e marca d'agua corrigidos"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qF -- \"## 10.3\" 1-Documentos/PRD.md && grep -qF -- \"DETAIL\" 1-Documentos/PRD.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-gate-de-reconciliacao
+    title: "Criar o gate de reconciliacao entre as camadas"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-revisao-independente-2
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/scdp/reconciliacao.py, 2-Scripts/verificar_reconciliacao.py"
+    why: "Regra do template: sem juiz nao se constroi; zero linhas e NAO_MEDIDO."
+    goal: "OK, DIVERGENTE, NAO_MEDIDO ou ERRO; confere contagens e valor total."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "defeitos injetados"
+        when: "o gate roda"
+        then: "valor adulterado e linha perdida sao acusados"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "REQUIRE_DB_TESTS=1 python -m pytest tests/test_reconciliacao.py -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 60
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-gate-na-dag
+    title: "Ligar a reconciliacao nas duas DAGs"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-gate-de-reconciliacao
+    touches_paths: []
+    creates_paths: []
+    source_note: "3-Etl/dags/dag_carga_diaria.py, 3-Etl/dags/dag_carga_completa.py"
+    why: "Carga verde nao basta se as camadas divergem."
+    goal: "Tarefa reconciliar depois da carga, sem retry."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "as duas DAGs"
+        when: "o texto e inspecionado"
+        then: "carga >> reconciliar e retries=0"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m pytest tests/test_cli_e_dags.py -k reconciliacao -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-r-validacao-contra-darkfactory
+    title: "Validar a stack contra as regras do darkfactory-template"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-gate-na-dag
+    touches_paths: []
+    creates_paths: []
+    source_note: "1-Documentos/PRD.md"
+    why: "Dinheiro em numeric, sem descarte silencioso, segredo fora do git, juiz acusa."
+    goal: "Compilacao, 86 testes com Postgres, juiz do template em Python 3.11, banco real OK."
+    context: "TAREFA RETROATIVA: o trabalho ja foi feito; este contrato registra e verifica. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o repositorio"
+        when: "as validacoes rodam"
+        then: "compileall, pytest com banco e gate de reconciliacao passam"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m compileall -q 2-Scripts 3-Etl tests && git check-ignore -q .env"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Tarefa retroativa, registra e verifica o que ja foi feito, nao reescrever o artefato."
+    do_not_touch:
+      - darkfactory-template
+
+  - id: T-20261019-req-perguntas-de-negocio
+    title: "Levantar as perguntas de negocio que o painel responde"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-resultado-varredura-2026
+    touches_paths: []
+    creates_paths:
+      - 1-Documentos/requisitos/perguntas-de-negocio.md
+    source_note: "PRD.md"
+    why: "Sem perguntas explicitas o painel vira um amontoado de graficos."
+    goal: "Lista numerada P-1.. de perguntas (quanto se gasta, onde, com quem, quando), cada uma com o campo que a responde."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o PRD, o dicionario de dados e o CLAUDE.md"
+        when: "as perguntas de negocio sao extraidas"
+        then: "ha ao menos 8 perguntas P-n, cada uma citando campo ou coluna e marcada como a validar com o usuario"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "test \"$(grep -c \"^## P-\" 1-Documentos/requisitos/perguntas-de-negocio.md)\" -ge 8"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 10
+    anti_patterns:
+      - "Nao inventar campo que a API nao devolve (sem trechos, passagens por viagem, destinos)."
+    do_not_touch:
+      - 3-Etl
+      - 2-Scripts
+
+  - id: T-20261019-req-kpis
+    title: "Definir os KPIs com formula e fonte"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-req-perguntas-de-negocio
+    touches_paths: []
+    creates_paths:
+      - 1-Documentos/requisitos/kpis.md
+    source_note: "PRD.md"
+    why: "KPI sem formula vira discussao em toda reuniao."
+    goal: "Cada KPI KPI-n com formula, coluna de origem, unidade e tratamento de nulo e de viagem Nao realizada."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "as perguntas de negocio"
+        when: "os KPIs sao definidos"
+        then: "cada KPI tem Formula, Fonte e Tratamento de Nao realizada"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "test \"$(grep -c \"^## KPI-\" 1-Documentos/requisitos/kpis.md)\" -ge 6 && test \"$(grep -c \"Formula:\" 1-Documentos/requisitos/kpis.md)\" = \"$(grep -c \"^## KPI-\" 1-Documentos/requisitos/kpis.md)\""
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 10
+    anti_patterns:
+      - "Nao usar float em valor monetario; formula em numeric."
+    do_not_touch:
+      - 3-Etl
+      - 2-Scripts
+
+  - id: T-20261019-req-filtros-e-recortes
+    title: "Definir filtros e recortes do painel"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-req-perguntas-de-negocio
+    touches_paths: []
+    creates_paths:
+      - 1-Documentos/requisitos/filtros.md
+    source_note: "PRD.md"
+    why: "Os recortes decidem o modelo de dados das views."
+    goal: "Tabela de filtros (periodo, orgao, UG, situacao, tipo, urgencia) com a coluna e o tipo de controle."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "as perguntas de negocio"
+        when: "os filtros sao listados"
+        then: "cada filtro cita a coluna da obt_viagem ou dimensao"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qi \"periodo\" 1-Documentos/requisitos/filtros.md && grep -qi \"orgao\" 1-Documentos/requisitos/filtros.md && grep -qi \"situacao\" 1-Documentos/requisitos/filtros.md && grep -qi \"urgencia\" 1-Documentos/requisitos/filtros.md && grep -qi \"ug\" 1-Documentos/requisitos/filtros.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 10
+    anti_patterns:
+      - "Nao incluir filtro por nome ou CPF."
+    do_not_touch:
+      - 3-Etl
+      - 2-Scripts
+
+  - id: T-20261019-req-nao-funcionais-painel
+    title: "Levantar requisitos nao funcionais do painel"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-req-perguntas-de-negocio
+    touches_paths: []
+    creates_paths:
+      - 1-Documentos/requisitos/nao-funcionais-painel.md
+    source_note: "PRD.md"
+    why: "Atualizacao, acesso e LGPD mudam a escolha de ferramenta."
+    goal: "Frescor dos dados, tempo de resposta, quem acessa, papeis, dado pessoal e retencao."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o PRD secoes 7 e 10.1"
+        when: "os requisitos nao funcionais sao levantados"
+        then: "ha secoes Atualizacao, Desempenho, Acesso e LGPD, cada uma com meta ou pergunta aberta"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qi \"atualizacao\" 1-Documentos/requisitos/nao-funcionais-painel.md && grep -qi \"desempenho\" 1-Documentos/requisitos/nao-funcionais-painel.md && grep -qi \"acesso\" 1-Documentos/requisitos/nao-funcionais-painel.md && grep -qi \"lgpd\" 1-Documentos/requisitos/nao-funcionais-painel.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 10
+    anti_patterns:
+      - "Nao fixar meta numerica sem fonte; marcar como a validar."
+    do_not_touch:
+      - 3-Etl
+      - 2-Scripts
+
+  - id: T-20261019-req-rastreabilidade
+    title: "Matriz requisito x coluna x camada com teste"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-req-kpis
+      - T-20261019-req-filtros-e-recortes
+    touches_paths: []
+    creates_paths:
+      - 1-Documentos/requisitos/rastreabilidade.csv
+      - tests/test_rastreabilidade.py
+    source_note: "PRD.md"
+    why: "Garante que todo KPI e filtro tem coluna real por tras."
+    goal: "CSV (requisito, coluna, camada) e teste que confere cada coluna no schema.sql."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "kpis.md, filtros.md e schema.sql"
+        when: "o teste de rastreabilidade roda"
+        then: "toda coluna citada existe em schema.sql e nenhum requisito fica sem linha"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m pytest tests/test_rastreabilidade.py -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Nao criar coluna no schema para fazer o teste passar."
+    do_not_touch:
+      - 3-Etl/dags/sql/schema.sql
+
+  - id: T-20261019-ferr-criterios
+    title: "Definir criterios para escolher ferramentas"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-req-nao-funcionais-painel
+    touches_paths: []
+    creates_paths:
+      - 1-Documentos/ferramentas/criterios.md
+    source_note: "PRD.md"
+    why: "Escolher ferramenta sem criterio e escolher por gosto."
+    goal: "Criterios com peso: custo, licenca, conexao PostgreSQL, hospedagem, LGPD, curva de aprendizado, manutencao."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "os requisitos nao funcionais"
+        when: "os criterios sao definidos"
+        then: "cada criterio tem peso de 1 a 5 e justificativa"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qi \"custo\" 1-Documentos/ferramentas/criterios.md && grep -qi \"licenca\" 1-Documentos/ferramentas/criterios.md && grep -qi \"postgres\" 1-Documentos/ferramentas/criterios.md && grep -qi \"lgpd\" 1-Documentos/ferramentas/criterios.md && grep -qi \"peso\" 1-Documentos/ferramentas/criterios.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 10
+    anti_patterns:
+      - "Nao pontuar ferramenta neste documento."
+    do_not_touch:
+      - 3-Etl
+      - 2-Scripts
+
+  - id: T-20261019-ferr-comparativo-bi
+    title: "Levantar e comparar ferramentas de BI"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-ferr-criterios
+      - T-20261019-req-kpis
+    touches_paths: []
+    creates_paths:
+      - 1-Documentos/ferramentas/comparativo-bi.md
+    source_note: "PRD.md"
+    why: "O PRD cita Power BI, Metabase e Pentaho sem comparar."
+    goal: "Matriz Power BI x Metabase x Superset x Streamlit contra cada criterio, com fonte de cada afirmacao."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "os criterios"
+        when: "as ferramentas sao comparadas"
+        then: "toda ferramenta tem nota em todo criterio e link ou fonte; nada fica sem nota"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qi \"power bi\" 1-Documentos/ferramentas/comparativo-bi.md && grep -qi \"metabase\" 1-Documentos/ferramentas/comparativo-bi.md && grep -qi \"superset\" 1-Documentos/ferramentas/comparativo-bi.md && grep -qi \"streamlit\" 1-Documentos/ferramentas/comparativo-bi.md && grep -qi \"fonte\" 1-Documentos/ferramentas/comparativo-bi.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 10
+    anti_patterns:
+      - "Nao recomendar sem citar o criterio decisivo."
+    do_not_touch:
+      - 3-Etl
+      - 2-Scripts
+
+  - id: T-20261019-ferr-comparativo-alerta
+    title: "Levantar e comparar canais de alerta"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-ferr-criterios
+    touches_paths: []
+    creates_paths:
+      - 1-Documentos/ferramentas/comparativo-alerta.md
+    source_note: "PRD.md"
+    why: "O alerta depende do que o orgao permite usar."
+    goal: "Comparar Teams, Slack, e-mail SMTP e o e-mail nativo do Airflow quanto a custo, segredo e confiabilidade."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "os criterios"
+        when: "os canais sao comparados"
+        then: "cada canal tem como o segredo e guardado e o que acontece se o canal cair"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qi \"teams\" 1-Documentos/ferramentas/comparativo-alerta.md && grep -qi \"slack\" 1-Documentos/ferramentas/comparativo-alerta.md && grep -qi \"smtp\" 1-Documentos/ferramentas/comparativo-alerta.md && grep -qi \"airflow\" 1-Documentos/ferramentas/comparativo-alerta.md && grep -qi \"segredo\" 1-Documentos/ferramentas/comparativo-alerta.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 10
+    anti_patterns:
+      - "Nao assumir que o webhook e permitido no orgao; marcar como a confirmar."
+    do_not_touch:
+      - 3-Etl
+      - 2-Scripts
+
+  - id: T-20261019-ferr-ambiente-airflow
+    title: "Levantar o ambiente de execucao do Airflow"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-airflowignore
+    touches_paths: []
+    creates_paths:
+      - 1-Documentos/ferramentas/ambiente-airflow.md
+    source_note: "PRD.md"
+    why: "O PRD lista pendencias de pool, segredos e caminho do projeto sem dono."
+    goal: "Onde o Airflow roda, como o repo chega ao worker, segredos (Connections ou variaveis), pool, versao do Python."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "os arquivos das DAGs e dag_util.py"
+        when: "o ambiente e levantado"
+        then: "ha secoes Caminho, Python, Segredos, Pool e Fuso, cada uma com o valor atual ou pergunta aberta"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qi \"PAINEL_SCDP_HOME\" 1-Documentos/ferramentas/ambiente-airflow.md && grep -qi \"PAINEL_SCDP_PYTHON\" 1-Documentos/ferramentas/ambiente-airflow.md && grep -qi \"segredos\" 1-Documentos/ferramentas/ambiente-airflow.md && grep -qi \"pool\" 1-Documentos/ferramentas/ambiente-airflow.md && grep -qi \"fuso\" 1-Documentos/ferramentas/ambiente-airflow.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 10
+    anti_patterns:
+      - "Nao registrar valor de segredo."
+    do_not_touch:
+      - 3-Etl
+      - 2-Scripts
+
+  - id: T-20261019-adr-escopo-orgaos
+    title: "ADR: escopo de orgaos da carga"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-escopo-orgaos-descoberto
+    touches_paths: []
+    creates_paths:
+      - 1-Documentos/adrs/0001-escopo-de-orgaos.md
+    source_note: "PRD.md"
+    why: "Decisao 5.1 do PRD bloqueia a carga final."
+    goal: "ADR com opcoes (so 33000, MPS inteiro), numeros de agosto/2026 por orgao, custo em requisicoes e recomendacao."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o PRD secao 5 e o CLAUDE.md"
+        when: "o ADR e escrito"
+        then: "ha Status, Contexto, Opcoes, Decisao e Consequencias; Status e proposta ate o dono aprovar"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qi \"Status:\" 1-Documentos/adrs/0001-escopo-de-orgaos.md && grep -qi \"33000\" 1-Documentos/adrs/0001-escopo-de-orgaos.md && grep -qi \"37202\" 1-Documentos/adrs/0001-escopo-de-orgaos.md && grep -qi \"33206\" 1-Documentos/adrs/0001-escopo-de-orgaos.md && grep -qi \"Consequencias\" 1-Documentos/adrs/0001-escopo-de-orgaos.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 10
+    anti_patterns:
+      - "Nao marcar Status como aceito sem aprovacao do dono."
+    do_not_touch:
+      - 3-Etl
+      - 2-Scripts
+
+  - id: T-20261019-adr-ferramenta-bi
+    title: "ADR: ferramenta do painel"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-ferr-comparativo-bi
+    touches_paths: []
+    creates_paths:
+      - 1-Documentos/adrs/0002-ferramenta-do-painel.md
+    source_note: "PRD.md"
+    why: "Sem esta decisao a implementacao do painel nao tem caminho."
+    goal: "ADR com a recomendacao do comparativo, alternativas rejeitadas e motivo."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o comparativo de BI"
+        when: "o ADR e escrito"
+        then: "ha Status proposta, Decisao, Alternativas rejeitadas e Consequencias"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qi \"Status:\" 1-Documentos/adrs/0002-ferramenta-do-painel.md && grep -qi \"Alternativas rejeitadas\" 1-Documentos/adrs/0002-ferramenta-do-painel.md && grep -qi \"Consequencias\" 1-Documentos/adrs/0002-ferramenta-do-painel.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 10
+    anti_patterns:
+      - "Nao editar ADR existente; revisao e ADR novo."
+    do_not_touch:
+      - 3-Etl
+      - 2-Scripts
+
+  - id: T-20261019-adr-canal-alerta
+    title: "ADR: canal de alerta"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-ferr-comparativo-alerta
+    touches_paths: []
+    creates_paths:
+      - 1-Documentos/adrs/0003-canal-de-alerta.md
+    source_note: "PRD.md"
+    why: "O modulo de alerta precisa saber o canal e onde fica o segredo."
+    goal: "ADR com canal escolhido, onde o segredo mora e o que fazer se o canal falhar."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o comparativo de alerta"
+        when: "o ADR e escrito"
+        then: "ha Status proposta, Decisao, Alternativas rejeitadas e Consequencias"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qi \"Status:\" 1-Documentos/adrs/0003-canal-de-alerta.md && grep -qi \"Alternativas rejeitadas\" 1-Documentos/adrs/0003-canal-de-alerta.md && grep -qi \"Consequencias\" 1-Documentos/adrs/0003-canal-de-alerta.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 10
+    anti_patterns:
+      - "Nao colocar URL de webhook real no documento."
+    do_not_touch:
+      - 3-Etl
+      - 2-Scripts
+
+  - id: T-20261019-adr-beneficiario-lgpd
+    title: "ADR: nome do beneficiario na camada analitica"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-req-nao-funcionais-painel
+    touches_paths: []
+    creates_paths:
+      - 1-Documentos/adrs/0004-beneficiario-na-analitica.md
+    source_note: "PRD.md"
+    why: "PRD 10.1 deixa a decisao pendente; o default do Atlas e dado individual fora do gold."
+    goal: "ADR com opcoes (manter, mascarar, remover da analitica), risco LGPD e impacto nas views."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o PRD 10.1 e os requisitos nao funcionais"
+        when: "o ADR e escrito"
+        then: "ha Status proposta e cada opcao tem impacto em dim_beneficiario e obt_viagem"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qi \"Status:\" 1-Documentos/adrs/0004-beneficiario-na-analitica.md && grep -qi \"dim_beneficiario\" 1-Documentos/adrs/0004-beneficiario-na-analitica.md && grep -qi \"obt_viagem\" 1-Documentos/adrs/0004-beneficiario-na-analitica.md && grep -qi \"LGPD\" 1-Documentos/adrs/0004-beneficiario-na-analitica.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 10
+    anti_patterns:
+      - "Nao alterar o schema neste ADR."
+    do_not_touch:
+      - 3-Etl
+      - 2-Scripts
+
+  - id: T-20261019-alerta-modulo
+    title: "Modulo de alerta (mensagem e envio)"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-adr-canal-alerta
+      - T-20261019-r-gate-na-dag
+    touches_paths: []
+    creates_paths:
+      - 3-Etl/dags/scdp/alerta.py
+      - tests/test_alerta.py
+    source_note: "PRD.md"
+    why: "Falha hoje so vira codigo de saida."
+    goal: "Montar mensagem sem segredos e enviar ao canal do ADR quando configurado."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "um veredito diferente de OK com motivos"
+        when: "o alerta e montado e enviado"
+        then: "a mensagem traz veredito e motivos, segredos saem como ***, e sem configuracao devolve NAO_CONFIGURADO sem rede"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m pytest tests/test_alerta.py -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Nao logar chave da API nem senha do banco."
+    do_not_touch:
+      - 3-Etl/dags/scdp/extracao.py
+
+  - id: T-20261019-alerta-dag-diaria
+    title: "Ligar alerta na DAG diaria"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-alerta-modulo
+    touches_paths:
+      - 3-Etl/dags/dag_carga_diaria.py
+      - tests/test_cli_e_dags.py
+    creates_paths: []
+    source_note: "PRD.md"
+    why: "O modulo so vale se a DAG o chama."
+    goal: "on_failure_callback nas tarefas carga_diaria e reconciliar."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "a DAG diaria"
+        when: "o texto do arquivo e inspecionado"
+        then: "as duas tarefas usam o callback e CODIGO_OCUPADO nao alerta"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m pytest tests/test_cli_e_dags.py -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Nao alertar em tarefa skipped."
+    do_not_touch:
+      - 3-Etl/dags/scdp/dag_util.py
+
+  - id: T-20261019-alerta-dag-completa
+    title: "Ligar alerta na DAG completa"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-alerta-dag-diaria
+    touches_paths:
+      - 3-Etl/dags/dag_carga_completa.py
+      - tests/test_cli_e_dags.py
+    creates_paths: []
+    source_note: "PRD.md"
+    why: "Mesma protecao na carga completa."
+    goal: "on_failure_callback nas tarefas carga_completa e reconciliar."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "a DAG completa"
+        when: "o texto do arquivo e inspecionado"
+        then: "as duas tarefas usam o callback"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m pytest tests/test_cli_e_dags.py -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Nao mudar agenda nem retries."
+    do_not_touch:
+      - 3-Etl/dags/scdp/dag_util.py
+
+  - id: T-20261019-orgaos-config
+    title: "Config: CODIGO_ORGAO aceita lista"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-adr-escopo-orgaos
+      - T-20261019-r-config
+      - T-20261019-r-janelas-planejamento
+    touches_paths:
+      - 3-Etl/dags/scdp/config.py
+    creates_paths:
+      - tests/test_orgaos_config.py
+    source_note: "PRD.md"
+    why: "RF11 pendente."
+    goal: "Interpretar CODIGO_ORGAO como lista, validando cada codigo de 5 digitos."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "CODIGO_ORGAO igual a 33000,37202 ou a so 33000"
+        when: "a configuracao e carregada"
+        then: "orgaos vira lista; um codigo mantem o comportamento; codigo invalido levanta ErroConfiguracao"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m pytest tests/test_orgaos_config.py tests/test_config.py -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Nao quebrar quem usa cfg.orgao com um codigo."
+    do_not_touch:
+      - 3-Etl/dags/sql/schema.sql
+
+  - id: T-20261019-orgaos-pipeline
+    title: "Pipeline: percorrer varios orgaos"
+    effort: M
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-orgaos-config
+    touches_paths:
+      - 3-Etl/dags/scdp/pipeline.py
+      - 3-Etl/dags/scdp/cli.py
+    creates_paths:
+      - tests/test_orgaos_pipeline.py
+    source_note: "PRD.md"
+    why: "RF11: cada orgao tem janelas e controle proprios."
+    goal: "Executar o planejamento e a carga por orgao."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "dois orgaos com extrator falso"
+        when: "a carga roda"
+        then: "cada orgao tem suas janelas em ctl_janela e nenhuma janela e lida duas vezes"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "REQUIRE_DB_TESTS=1 python -m pytest tests -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 120
+    anti_patterns:
+      - "Nao alterar a coluna orgao nem o schema de ctl_janela."
+    do_not_touch:
+      - 3-Etl/dags/sql/schema.sql
+
+  - id: T-20261019-janela-queda-leitura
+    title: "Controle: ler a contagem anterior da janela"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-orgaos-pipeline
+    touches_paths:
+      - 3-Etl/dags/scdp/controle.py
+    creates_paths:
+      - tests/test_queda_leitura.py
+    source_note: "PRD.md"
+    why: "Base para detectar janela que devolve menos."
+    goal: "Expor a qtd_api da leitura anterior de uma janela."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "uma janela lida antes"
+        when: "a contagem anterior e consultada"
+        then: "devolve o valor anterior, ou None se nunca foi lida"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "REQUIRE_DB_TESTS=1 python -m pytest tests/test_queda_leitura.py -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 60
+    anti_patterns:
+      - "Nao alterar o schema."
+    do_not_touch:
+      - 3-Etl/dags/scdp/transformacao.py
+
+  - id: T-20261019-janela-queda-aviso
+    title: "Pipeline: avisar queda de contagem na janela"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-janela-queda-leitura
+    touches_paths:
+      - 3-Etl/dags/scdp/pipeline.py
+    creates_paths:
+      - tests/test_queda_aviso.py
+    source_note: "PRD.md"
+    why: "Pagina intermediaria vazia por instabilidade passaria despercebida."
+    goal: "Gravar aviso na janela quando qtd_api cair."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "janela lida antes com 10 viagens e agora com 7"
+        when: "a janela e processada"
+        then: "o aviso registra 10 para 7 e as 10 viagens continuam na staging"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "REQUIRE_DB_TESTS=1 python -m pytest tests/test_queda_aviso.py -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 60
+    anti_patterns:
+      - "Nao apagar nem alterar viagens por causa da queda."
+    do_not_touch:
+      - 3-Etl/dags/scdp/transformacao.py
+
+  - id: T-20261019-dim-data-2035
+    title: "Estender a dim_data ate 2035"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-schema-analitica
+    touches_paths:
+      - 3-Etl/dags/sql/schema.sql
+    creates_paths:
+      - tests/test_dim_data.py
+    source_note: "PRD.md"
+    why: "Viagens agendadas alem de 2030 ficariam sem data."
+    goal: "dim_data cobre 2020-01-01 a 2035-12-31, idempotente."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "banco novo e banco ja carregado"
+        when: "o schema e aplicado"
+        then: "dim_data tem 2035-12-31 e nenhuma data duplicada"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "REQUIRE_DB_TESTS=1 python -m pytest tests/test_dim_data.py -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 60
+    anti_patterns:
+      - "Nao truncar nem recriar a dim_data."
+    do_not_touch:
+      - 3-Etl/dags/scdp/transformacao.py
+
+  - id: T-20261019-validar-carga-script
+    title: "Script do gate de janelas"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-controle-por-janela
+    touches_paths: []
+    creates_paths:
+      - 2-Scripts/validar_carga_completa.py
+      - tests/test_validar_carga.py
+    source_note: "PRD.md"
+    why: "A meta de 100% das janelas OK nao tem verificador."
+    goal: "Ler ctl_janela e devolver CARGA=OK|DIVERGENTE|NAO_MEDIDO|ERRO."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "ctl_janela vazia, ou com janela ERRO, ou com qtd_api diferente de qtd_carregada"
+        when: "o gate roda"
+        then: "vazia devolve NAO_MEDIDO, divergencia devolve DIVERGENTE com a lista, tudo certo devolve OK"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "REQUIRE_DB_TESTS=1 python -m pytest tests/test_validar_carga.py -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 60
+    anti_patterns:
+      - "Zero janelas nunca e OK."
+    do_not_touch:
+      - 3-Etl/dags/scdp/reconciliacao.py
+
+  - id: T-20261019-validar-carga-dag
+    title: "Ligar o gate de janelas na DAG completa"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-validar-carga-script
+      - T-20261019-alerta-dag-completa
+    touches_paths:
+      - 3-Etl/dags/dag_carga_completa.py
+    creates_paths:
+      - tests/test_validar_carga_dag.py
+    source_note: "PRD.md"
+    why: "A carga completa e a que deve fechar 100% das janelas."
+    goal: "Tarefa validar_janelas apos a reconciliacao, sem retry, com o comando montado na propria DAG a partir de PAINEL_SCDP_HOME e PAINEL_SCDP_PYTHON."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "a DAG completa"
+        when: "o texto do arquivo e inspecionado"
+        then: "validar_janelas existe, vem depois de reconciliar e tem retries=0"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m pytest tests/test_validar_carga_dag.py tests/test_cli_e_dags.py -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Nao mudar a agenda."
+    do_not_touch:
+      - 3-Etl/dags/scdp/carga.py
+
+  - id: T-20261019-views-kpi-mes
+    title: "View vw_kpi_mes"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-dim-data-2035
+      - T-20261019-req-rastreabilidade
+    touches_paths:
+      - 3-Etl/dags/sql/schema.sql
+    creates_paths:
+      - tests/test_view_kpi_mes.py
+    source_note: "PRD.md"
+    why: "Serie temporal e o KPI base."
+    goal: "View por ano_mes com quantidade de viagens e valores por componente."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "viagens em duas competencias"
+        when: "a view e consultada"
+        then: "a soma por mes bate exatamente com a fct_viagem e nenhum valor e float"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "REQUIRE_DB_TESTS=1 python -m pytest tests/test_view_kpi_mes.py -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 60
+    anti_patterns:
+      - "Nao expor beneficiario."
+    do_not_touch:
+      - 3-Etl/dags/scdp/transformacao.py
+
+  - id: T-20261019-views-kpi-orgao
+    title: "View vw_kpi_orgao"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-views-kpi-mes
+    touches_paths:
+      - 3-Etl/dags/sql/schema.sql
+    creates_paths:
+      - tests/test_view_kpi_orgao.py
+    source_note: "PRD.md"
+    why: "Necessaria assim que houver mais de um orgao."
+    goal: "View por orgao e ano_mes."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "viagens de dois orgaos"
+        when: "a view e consultada"
+        then: "cada orgao soma o proprio total e a soma dos orgaos bate com a fct_viagem"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "REQUIRE_DB_TESTS=1 python -m pytest tests/test_view_kpi_orgao.py -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 60
+    anti_patterns:
+      - "Nao expor beneficiario."
+    do_not_touch:
+      - 3-Etl/dags/scdp/transformacao.py
+
+  - id: T-20261019-views-kpi-situacao
+    title: "View vw_kpi_situacao"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-views-kpi-orgao
+    touches_paths:
+      - 3-Etl/dags/sql/schema.sql
+    creates_paths:
+      - tests/test_view_kpi_situacao.py
+    source_note: "PRD.md"
+    why: "Viagem Nao realizada ainda aparece e pode ter passagem."
+    goal: "View por situacao, tipo e urgencia."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "viagens Realizada e Nao realizada"
+        when: "a view e consultada"
+        then: "as contagens por situacao somam o total e Sigiloso aparece como categoria propria"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "REQUIRE_DB_TESTS=1 python -m pytest tests/test_view_kpi_situacao.py -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 60
+    anti_patterns:
+      - "Nao esconder viagem Nao realizada."
+    do_not_touch:
+      - 3-Etl/dags/scdp/transformacao.py
+
+  - id: T-20261019-papel-leitura-painel
+    title: "Papel somente leitura para o painel"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-views-kpi-situacao
+    touches_paths: []
+    creates_paths:
+      - 3-Etl/dags/sql/papel_leitura.sql
+      - tests/test_papel_leitura.py
+    source_note: "PRD.md"
+    why: "O painel nao deve ter permissao de escrita."
+    goal: "Script SQL idempotente que cria o papel com SELECT apenas nas views e na obt."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "um banco com as camadas"
+        when: "o script roda duas vezes e o papel tenta escrever"
+        then: "SELECT funciona, INSERT e UPDATE sao negados, e a segunda execucao nao falha"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "REQUIRE_DB_TESTS=1 python -m pytest tests/test_papel_leitura.py -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 60
+    anti_patterns:
+      - "Nao conceder acesso a staging nem a ctl_."
+    do_not_touch:
+      - 3-Etl/dags/sql/schema.sql
+
+  - id: T-20261019-ci-actions-sha
+    title: "Fixar as actions do CI por SHA"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-ci-github
+    touches_paths:
+      - .github/workflows/ci.yml
+    creates_paths:
+      - tests/test_ci_actions_fixadas.py
+    source_note: "PRD.md"
+    why: "Tag pode ser movida; SHA nao."
+    goal: "Toda linha uses termina em arroba e 40 hexadecimais, com a tag em comentario."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o ci.yml"
+        when: "as linhas uses sao lidas"
+        then: "todas referenciam SHA de 40 caracteres"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m pytest tests/test_ci_actions_fixadas.py -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 10
+    anti_patterns:
+      - "Nao inventar SHA; resolver no repositorio oficial. Nao alterar jobs."
+    do_not_touch:
+      - 3-Etl
+
+  - id: T-20261019-painel-especificacao
+    title: "Especificacao do painel"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-req-rastreabilidade
+      - T-20261019-adr-ferramenta-bi
+      - T-20261019-views-kpi-situacao
+    touches_paths: []
+    creates_paths:
+      - 4-DataViz/especificacao-painel.md
+      - tests/test_especificacao_painel.py
+    source_note: "PRD.md"
+    why: "4-DataViz esta vazio."
+    goal: "KPIs, filtros e paginas do painel ligados a view e coluna, independente de ferramenta."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "a especificacao"
+        when: "as views e colunas citadas sao extraidas"
+        then: "todas existem em schema.sql"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m pytest tests/test_especificacao_painel.py -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Nao citar KPI sem view."
+    do_not_touch:
+      - 3-Etl/dags/sql/schema.sql
+
+  - id: T-20261019-runbook-carga-real
+    title: "Runbook: validar a carga completa desde 2025"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-validar-carga-script
+    touches_paths: []
+    creates_paths:
+      - 1-Documentos/validacao/carga-completa-real.md
+    source_note: "PRD.md"
+    why: "A carga completa no banco real nunca foi validada (PRD 10)."
+    goal: "Passo a passo e criterio de aceite, com os comandos exatos."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o gate de janelas"
+        when: "o runbook e escrito"
+        then: "cita 312 janelas, o gate CARGA=OK e o que fazer se DIVERGENTE"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qi \"312\" 1-Documentos/validacao/carga-completa-real.md && grep -qi \"validar_carga_completa\" 1-Documentos/validacao/carga-completa-real.md && grep -qi \"DIVERGENTE\" 1-Documentos/validacao/carga-completa-real.md && grep -qi \"reconciliacao\" 1-Documentos/validacao/carga-completa-real.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 10
+    anti_patterns:
+      - "Nao incluir chave nem senha."
+    do_not_touch:
+      - 3-Etl
+      - 2-Scripts
+
+  - id: T-20261019-runbook-registro-tardio
+    title: "Runbook: exercitar registro tardio"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-validar-carga-script
+    touches_paths: []
+    creates_paths:
+      - 1-Documentos/validacao/registro-tardio.md
+    source_note: "PRD.md"
+    why: "RF8 so foi testado em simulacao."
+    goal: "Como provocar e confirmar um TARDIO em vw_ctl_tardios."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o modo completo"
+        when: "o runbook e escrito"
+        then: "cita vw_ctl_tardios, TARDIO e o criterio de sucesso"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qi \"vw_ctl_tardios\" 1-Documentos/validacao/registro-tardio.md && grep -qi \"TARDIO\" 1-Documentos/validacao/registro-tardio.md && grep -qi \"criterio\" 1-Documentos/validacao/registro-tardio.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 10
+    anti_patterns:
+      - "Nao apagar dado de producao no exemplo."
+    do_not_touch:
+      - 3-Etl
+      - 2-Scripts
+
+  - id: T-20261019-manual-operacao
+    title: "Manual de operacao"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-alerta-dag-completa
+      - T-20261019-validar-carga-dag
+    touches_paths: []
+    creates_paths:
+      - 1-Documentos/MANUAL.md
+    source_note: "PRD.md"
+    why: "Quem opera a carga precisa de um guia unico."
+    goal: "Agenda, modos, gates, alertas e variaveis do .env."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o repositorio"
+        when: "o manual e escrito"
+        then: "cita os dois gates, os dois modos e o alerta"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qi \"verificar_reconciliacao\" 1-Documentos/MANUAL.md && grep -qi \"validar_carga_completa\" 1-Documentos/MANUAL.md && grep -qi \"diario\" 1-Documentos/MANUAL.md && grep -qi \"completo\" 1-Documentos/MANUAL.md && grep -qi \"alerta\" 1-Documentos/MANUAL.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 10
+    anti_patterns:
+      - "Descrever so o que existe no codigo."
+    do_not_touch:
+      - 3-Etl
+
+  - id: T-20261019-manual-recuperacao
+    title: "Manual de recuperacao de falhas"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-manual-operacao
+    touches_paths: []
+    creates_paths:
+      - 1-Documentos/MANUAL-recuperacao.md
+    source_note: "PRD.md"
+    why: "Codigos de saida 1, 2 e 3 e execucao interrompida precisam de resposta."
+    goal: "Sintoma, causa e acao para cada falha conhecida."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "os codigos de saida e o controle"
+        when: "o manual e escrito"
+        then: "cobre codigo 1, 2, 3, INTERROMPIDA, 401 e 429"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qi \"INTERROMPIDA\" 1-Documentos/MANUAL-recuperacao.md && grep -qi \"401\" 1-Documentos/MANUAL-recuperacao.md && grep -qi \"429\" 1-Documentos/MANUAL-recuperacao.md && grep -qi \"codigo 3\" 1-Documentos/MANUAL-recuperacao.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 10
+    anti_patterns:
+      - "Nao sugerir apagar dado da staging."
+    do_not_touch:
+      - 3-Etl
+
+  - id: T-20261019-prd-atualizacao
+    title: "Atualizar PRD e README com o estado real"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-adr-escopo-orgaos
+      - T-20261019-adr-beneficiario-lgpd
+      - T-20261019-orgaos-pipeline
+      - T-20261019-janela-queda-aviso
+      - T-20261019-alerta-dag-completa
+      - T-20261019-validar-carga-dag
+      - T-20261019-painel-especificacao
+    touches_paths:
+      - 1-Documentos/PRD.md
+      - README.md
+    creates_paths: []
+    source_note: "PRD.md"
+    why: "RF11 e RF12 constam como pendentes e o escopo do painel mudou."
+    goal: "PRD e README refletem o que foi entregue e as decisoes dos ADRs."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "os ADRs e o codigo"
+        when: "os documentos sao atualizados"
+        then: "RF11 e RF12 deixam de ser Pendente e cada decisao cita seu ADR"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "! grep -n \"RF11.*Pendente\" 1-Documentos/PRD.md && grep -q \"adrs/0001\" 1-Documentos/PRD.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 10
+    anti_patterns:
+      - "Nao marcar como implementado o que nao esta no codigo."
+    do_not_touch:
+      - 3-Etl
+
+  - id: T-20261019-checklist-entrega
+    title: "Checklist final de entrega"
+    effort: XS
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-prd-atualizacao
+      - T-20261019-manual-recuperacao
+      - T-20261019-runbook-carga-real
+      - T-20261019-runbook-registro-tardio
+      - T-20261019-papel-leitura-painel
+      - T-20261019-ci-actions-sha
+    touches_paths: []
+    creates_paths:
+      - 1-Documentos/checklist-entrega.md
+    source_note: "PRD.md"
+    why: "Entrega sem checklist e entrega sem criterio."
+    goal: "Lista verificavel com o comando de cada item e o resultado esperado."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "todas as tarefas anteriores"
+        when: "o checklist e escrito"
+        then: "ha um item por gate (pytest, reconciliacao, janelas, CI, gitleaks) com comando"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "grep -qi \"pytest\" 1-Documentos/checklist-entrega.md && grep -qi \"verificar_reconciliacao\" 1-Documentos/checklist-entrega.md && grep -qi \"validar_carga_completa\" 1-Documentos/checklist-entrega.md && grep -qi \"gitleaks\" 1-Documentos/checklist-entrega.md"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 10
+    anti_patterns:
+      - "Nao marcar item como feito."
+    do_not_touch:
+      - 3-Etl
+
+  - id: T-20261019-api-contrato-base
+    title: "Script reproduzivel que consulta uma janela e conta viagens"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-r-testes-de-janela-no-codigo
+    touches_paths: []
+    creates_paths:
+      - 2-Scripts/testar_janelas_api.py
+      - tests/test_testar_janelas_api.py
+    source_note: "PRD.md"
+    why: "Os testes de janela foram feitos a mao; o resultado precisa ser repetivel."
+    goal: "Funcao contar(ida_de, ida_ate, ret_de, ret_ate) que usa o cliente da carga e devolve a contagem e as paginas."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "um cliente falso"
+        when: "contar e chamada"
+        then: "devolve a contagem e o numero de paginas e propaga 400 como erro permanente"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m pytest tests/test_testar_janelas_api.py -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Nao chamar a API real nos testes unitarios."
+    do_not_touch:
+      - 3-Etl/dags/scdp/extracao.py
+
+  - id: T-20261019-api-contrato-sucesso
+    title: "Casos que devem dar certo: dentro do mes, mes+1, mes+12 e dia unico"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-api-contrato-base
+    touches_paths: []
+    creates_paths:
+      - 2-Scripts/casos_janela_ok.json
+      - tests/test_casos_janela_ok.py
+    source_note: "PRD.md"
+    why: "Cada descoberta vira um caso com resultado esperado."
+    goal: "Tabela de casos (janelas e contagem esperada de marco e agosto/2026) e teste que valida o formato."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o arquivo de casos"
+        when: "o teste le os casos"
+        then: "cobre mes+0, +1, +3, +12, dia unico, semana e limite de 31 dias"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m pytest tests/test_casos_janela_ok.py -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Nao incluir a chave."
+    do_not_touch:
+      - 3-Etl
+
+  - id: T-20261019-api-contrato-erro
+    title: "Casos que devem dar 400 ou vazio"
+    effort: S
+    profile: standard
+    agent: any
+    execution_backend: claude
+    depends_on:
+      - T-20261019-api-contrato-sucesso
+      - T-20261019-api-contrato-sucesso
+    touches_paths: []
+    creates_paths:
+      - 2-Scripts/casos_janela_erro.json
+      - tests/test_casos_janela_erro.py
+    source_note: "PRD.md"
+    why: "Fixar o contrato de erro da API para detectar mudanca."
+    goal: "Casos de 32 dias, 2 e 4 meses, parametro ausente, Ate antes de De e anomalias."
+    context: "Tarefa nova do plano de entrega. Ler o CLAUDE.md do projeto antes de escrever."
+    behaviors:
+      - id: B-1
+        given: "o arquivo de casos"
+        when: "o teste le os casos"
+        then: "cada caso diz se espera 400 ou lista vazia"
+    evals:
+      - id: eval_1
+        description: "verificacao da tarefa"
+        command: "python -m pytest tests/test_casos_janela_erro.py -q"
+        verifies:
+          - B-1
+        terminal: true
+        expected_duration_sec: 20
+    anti_patterns:
+      - "Nao tratar [] como erro."
+    do_not_touch:
+      - 3-Etl

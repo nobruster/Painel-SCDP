@@ -1,8 +1,10 @@
 # Painel SCDP Viagens
 
-Carga incremental das viagens a serviço do Governo Federal (SCDP), obtidas na API do Portal da Transparência, para o PostgreSQL, em modelo medalhão (staging, intermediária e analítica), com controle da carga por janela de datas. A base alimenta um painel de viagens.
+Carga incremental das viagens a serviço do Governo Federal (SCDP), obtidas na API do Portal da Transparência, para o PostgreSQL, em modelo medalhão (staging, intermediária e analítica), com controle da carga por janela de datas. A base (`analitica.obt_viagem`) serve de fonte para um painel de viagens; o painel e seus KPIs ficam fora deste projeto: os KPIs são calculados no próprio painel, sem views de KPI aqui.
 
-Estado em 19/10/2026: carga testada com o órgão `33000` (MPS). Varredura de 2026 com 1.460 viagens, repetida com resultado idêntico. Carga completa desde 2025 e DAGs do Airflow ainda não executadas. Detalhes e decisões em `1-Documentos/PRD.md`.
+Estado: carga completa de 2025 e 2026 validada para o órgão `33000` (3.411 viagens iguais em todas as camadas, conferidas com o download oficial). Lista de órgãos (RF11) implementada, conforme `1-Documentos/adrs/0001-escopo-de-orgaos.md`. Detalhes e decisões em `1-Documentos/PRD.md`.
+
+Entregas operacionais: alerta de erro/pendência (`scdp/alerta.py`, `adrs/0003-canal-de-alerta.md`); gate de janelas (queda de contagem é relida e avisada, tarefa `reconciliar` na DAG completa); papel de leitura somente leitura para consumo (`3-Etl/dags/sql/papel_leitura.sql`); `COMMENT ON` em todas as tabelas, views e colunas; scripts de busca e conferência em `2-Scripts/` (`testar_janelas_api.py`, `validar_carga_completa.py`, `verificar_reconciliacao.py`); CI com actions fixadas por SHA.
 
 ## Estrutura do projeto
 | Pasta | Conteúdo |
@@ -11,7 +13,7 @@ Estado em 19/10/2026: carga testada com o órgão `33000` (MPS). Varredura de 20
 | `2-Scripts/` | Exploração e validação: `consulta_viagens.py`, `varredura_2026.py` e `postman/`. `saidas/` guarda dados gerados (não versionado) |
 | `3-Etl/dags/` | DAGs do Airflow, `carga_viagens.py` (ponto de entrada), o pacote `scdp/` (código da carga) e `sql/schema.sql` (DDL) |
 | `tests/` | Testes unitários e de integração (rodam no CI com PostgreSQL) |
-| `4-DataViz/` | Painel |
+| `4-DataViz/` | Reservada ao painel (KPIs calculados no painel a partir de `analitica.obt_viagem`) |
 | `5-Images/` | Imagens e prints |
 
 ## Como rodar
@@ -109,7 +111,7 @@ O download automatizado com `curl` precisa de um `User-Agent` de navegador. Form
 - **CPF:** permanece mascarado como a API entrega, em todas as camadas.
 - **`motivo` (texto livre):** fora da analítica; fica na intermediária e no JSON da staging.
 - **Nome do beneficiário:** segue na analítica; confirmar se permanece.
-- **Escopo de órgãos:** só `33000` ou o MPS inteiro (INSS, PREVIC)? Define o volume da carga.
+- **Escopo de órgãos:** decidido e implementado, ver `1-Documentos/adrs/0001-escopo-de-orgaos.md`.
 - **Código `308819`:** não existe como órgão no SIAFI nem no SIAPE; origem a esclarecer.
 - **Download em lote:** avaliar para o histórico, passagens, trechos e pagamentos.
 - **Airflow:** duas DAGs em `3-Etl/dags/` (`scdp_carga_diaria` às 02:00 e `scdp_carga_completa` às 03:30 dos dias 1, 11 e 21, ambas em `America/Sao_Paulo`). A diária é pulada se a trava estiver ocupada; a completa falha e é repetida. A chave da API e a senha do banco chegam pelo ambiente do worker (Connections/Variables ainda não usadas).

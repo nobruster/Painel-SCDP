@@ -134,6 +134,21 @@ def test_comando_de_reconciliacao_aponta_para_o_script_que_existe():
     assert (DAGS.parent.parent / "2-Scripts" / "verificar_reconciliacao.py").is_file()
 
 
+@pytest.mark.parametrize("arquivo,tarefas", [("dag_carga_diaria.py", ("carga_diaria", "reconciliar")),
+                                             ("dag_carga_completa.py", ("carga_completa", "reconciliar"))])
+def test_tarefas_de_carga_e_reconciliacao_usam_o_callback_de_alerta(arquivo, tarefas):
+    texto = (DAGS / arquivo).read_text(encoding="utf-8")
+    assert "from scdp.alerta import callback_falha" in texto
+    for tarefa in tarefas:
+        trecho = texto[texto.index(f'task_id="{tarefa}"'):].split("BashOperator(")[0]
+        assert "on_failure_callback=callback_falha(" in trecho, f"{tarefa} sem on_failure_callback"
+
+
+def test_codigo_ocupado_nao_alerta_na_diaria():
+    texto = (DAGS / "dag_carga_diaria.py").read_text(encoding="utf-8")
+    assert "callback_falha(ignorar_codigos=(CODIGO_OCUPADO,))" in texto
+
+
 @pytest.mark.parametrize("arquivo,tarefa", [("dag_carga_diaria.py", "carga_diaria"), ("dag_carga_completa.py", "carga_completa")])
 def test_reconciliacao_roda_depois_da_carga_e_sem_retry(arquivo, tarefa):
     texto = (DAGS / arquivo).read_text(encoding="utf-8")

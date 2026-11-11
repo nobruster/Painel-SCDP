@@ -40,13 +40,25 @@ class ResultadoJanela:
 
 
 class Pipeline:
-    def __init__(self, cfg: Config, conn, extrator, controle: Controle, dormir: Callable[[float], None] = time.sleep):
+    def __init__(self, cfg: Config, conn, extrator, controle: Controle, dormir: Callable[[float], None] = time.sleep,
+                 extrator_por_orgao: Optional[Callable[[str], object]] = None):
         self.cfg = cfg
         self.conn = conn
         self.cur = conn.cursor()
         self.extrator = extrator
         self.controle = controle
         self.dormir = dormir
+        self.extrator_por_orgao = extrator_por_orgao
+        self._extrator_base = extrator
+        self._controle_base = controle
+
+    def _usar_orgao(self, orgao: Optional[str]) -> None:
+        """Aponta extrator e controle para o orgao; None volta aos originais (que servem a analitica e a execucao)."""
+        if orgao is None:
+            self.extrator, self.controle = self._extrator_base, self._controle_base
+            return
+        self.controle = self._controle_base.para_orgao(orgao)
+        self.extrator = self.extrator_por_orgao(orgao) if self.extrator_por_orgao else self._extrator_base
 
     # ---- trava: uma execucao por vez por conjunto de schemas (a marca d'agua e as tabelas de controle sao compartilhadas);
     #      a trava e de sessao: nao funciona atras de pooler em modo transaction (use conexao direta)
@@ -112,7 +124,7 @@ class Pipeline:
             registros, paginas = self.extrator.buscar(ida, ret)
             etapa = "banco"
             registros, repetidos = transformacao.remover_repetidos(registros)
-            anterior = estado["qtd_api"] if estado else None
+            anterior = estado["qtd_api"] if estado else c.qtd_anterior(ida, ret)
             for _ in range(RELEITURAS_POR_QUEDA):
                 if not (anterior and len(registros) < anterior):
                     break
@@ -218,70 +230,80 @@ class Pipeline:
 
     def _executar(self, modo: str, desde: dt.date, hoje: dt.date) -> int:
         cfg, c = self.cfg, self.controle
+        orgaos = cfg.orgaos or (c.orgao,)
+        multi = len(orgaos) > 1
         todas = list(janelas.planejar(desde, hoje, cfg))
         # com a trava em maos, qualquer execucao sem fim e orfa (processo morto)
         c.marcar_execucoes_interrompidas(cfg.horas_execucao_interrompida)
-        c.iniciar_execucao(modo, len(todas))
-        estados = c.ler_estados()
+        c.iniciar_execucao(modo, len(todas) * len(orgaos))
 
         limite_recente = janelas.add_meses(hoje.replace(day=1), -cfg.meses_recentes)
         lidas = novos = alterados = tardios = 0
         abortou = False
-        falhas: Dict[janelas.Janela, Tuple[Optional[dict], bool]] = {}
+        falhas: Dict[Tuple[str, dt.date, dt.date], Tuple[Optional[dict], bool]] = {}
+        rotulo = lambda cod, ida, ret: f"{cod + ' ' if multi else ''}ida {ida:%Y-%m} -> ret {ret:%Y-%m}"  # noqa: E731
 
-        for ida, ret in janelas.ordenar_janelas(todas, estados):
-            est = estados.get((ida, ret))
-            if not janelas.precisa_ler(est, ida, ret, hoje, modo, cfg):
-                continue
-            try:
-                r = self.processar_janela(ida, ret, est)
-            except ErroFatal as e:
-                log.error("ABORTADO: %s", descrever(cfg, e))
-                abortou = True
-                break
-            lidas += 1
-            novos += r.novos
-            alterados += r.alterados
-            if not r.ok:
-                falhas[(ida, ret)] = (est, r.permanente)
-            atrasado = r.novos > 0 and est is not None and est["status"] == "OK" and ida < limite_recente
-            tardios += r.novos if atrasado else 0
-            if r.qtd or r.novos or r.alterados or r.aviso or not r.ok:
-                log.info("ida %s -> ret %s: api=%d novos=%d alterados=%d%s%s%s", f"{ida:%Y-%m}", f"{ret:%Y-%m}", r.qtd,
-                         r.novos, r.alterados, " TARDIO" if atrasado else "", f" AVISO {r.aviso}" if r.aviso else "",
-                         "" if r.ok else " ERRO")
-
-        for rodada in range(1, cfg.rodadas_retentativa + 1):
-            repetiveis = {j: v for j, v in falhas.items() if not v[1]}
-            if not repetiveis or abortou:
-                break
-            log.info("nova tentativa das janelas com erro (rodada %d): %d", rodada, len(repetiveis))
-            self.dormir(PAUSA_RODADA_S * rodada)
-            for (ida, ret), (est, _) in list(repetiveis.items()):
-                try:
-                    r = self.processar_janela(ida, ret, est)
-                except ErroFatal as e:
-                    log.error("ABORTADO: %s", descrever(cfg, e))
-                    abortou = True
+        try:
+            for cod in orgaos:
+                self._usar_orgao(cod)
+                estados = self.controle.ler_estados()
+                for ida, ret in janelas.ordenar_janelas(todas, estados):
+                    est = estados.get((ida, ret))
+                    if not janelas.precisa_ler(est, ida, ret, hoje, modo, cfg):
+                        continue
+                    try:
+                        r = self.processar_janela(ida, ret, est)
+                    except ErroFatal as e:
+                        log.error("ABORTADO: %s", descrever(cfg, e))
+                        abortou = True
+                        break
+                    lidas += 1
+                    novos += r.novos
+                    alterados += r.alterados
+                    if not r.ok:
+                        falhas[(cod, ida, ret)] = (est, r.permanente)
+                    atrasado = r.novos > 0 and est is not None and est["status"] == "OK" and ida < limite_recente
+                    tardios += r.novos if atrasado else 0
+                    if r.qtd or r.novos or r.alterados or r.aviso or not r.ok:
+                        log.info("%s: api=%d novos=%d alterados=%d%s%s%s", rotulo(cod, ida, ret), r.qtd, r.novos, r.alterados,
+                                 " TARDIO" if atrasado else "", f" AVISO {r.aviso}" if r.aviso else "", "" if r.ok else " ERRO")
+                if abortou:
                     break
-                novos += r.novos
-                alterados += r.alterados
-                if r.ok:
-                    del falhas[(ida, ret)]
-                    log.info("ida %s -> ret %s: corrigido (api=%d novos=%d)", f"{ida:%Y-%m}", f"{ret:%Y-%m}", r.qtd, r.novos)
-                elif r.permanente:
-                    falhas[(ida, ret)] = (est, True)
+
+            for rodada in range(1, cfg.rodadas_retentativa + 1):
+                repetiveis = {j: v for j, v in falhas.items() if not v[1]}
+                if not repetiveis or abortou:
+                    break
+                log.info("nova tentativa das janelas com erro (rodada %d): %d", rodada, len(repetiveis))
+                self.dormir(PAUSA_RODADA_S * rodada)
+                for (cod, ida, ret), (est, _) in list(repetiveis.items()):
+                    self._usar_orgao(cod)
+                    try:
+                        r = self.processar_janela(ida, ret, est)
+                    except ErroFatal as e:
+                        log.error("ABORTADO: %s", descrever(cfg, e))
+                        abortou = True
+                        break
+                    novos += r.novos
+                    alterados += r.alterados
+                    if r.ok:
+                        del falhas[(cod, ida, ret)]
+                        log.info("%s: corrigido (api=%d novos=%d)", rotulo(cod, ida, ret), r.qtd, r.novos)
+                    elif r.permanente:
+                        falhas[(cod, ida, ret)] = (est, True)
+        finally:
+            self._usar_orgao(None)
 
         erros = len(falhas)
         analiticas, ok_analitica = self.atualizar_analitica_registrando()
         log.info("analitica: %d viagens processadas%s", analiticas, "" if ok_analitica else " (ERRO, registrado)")
-        pendentes = c.contar_pendentes()
+        pendentes = sum(c.para_orgao(cod).contar_pendentes() for cod in orgaos)
         limpo = not erros and not pendentes and ok_analitica and not abortou
         if limpo:
             c.resolver_erros(None, None, etapa="execucao")
         status = "CONCLUIDA" if limpo else ("ABORTADA" if abortou else "COM_ERROS")
         c.finalizar_execucao(status, lidas, erros, novos, alterados)
-        abertos = c.contar_abertos()
+        abertos = sum(c.para_orgao(cod).contar_abertos() for cod in orgaos)
         log.info("janelas planejadas=%d lidas=%d erro=%d pendentes=%d erros_abertos=%d novos=%d alterados=%d tardios=%d status=%s",
-                 len(todas), lidas, erros, pendentes, abertos, novos, alterados, tardios, status)
+                 len(todas) * len(orgaos), lidas, erros, pendentes, abertos, novos, alterados, tardios, status)
         return 1 if (abertos or pendentes or abortou) else 0

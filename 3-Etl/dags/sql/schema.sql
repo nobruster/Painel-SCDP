@@ -192,7 +192,7 @@ CREATE TABLE IF NOT EXISTS @ANA@.dim_data (
 INSERT INTO @ANA@.dim_data (data_key, ano, trimestre, mes, ano_mes, dia_semana, fim_de_semana)
 SELECT d::date, extract(year FROM d)::int, extract(quarter FROM d)::int, extract(month FROM d)::int,
        to_char(d, 'YYYY-MM'), extract(isodow FROM d)::int, extract(isodow FROM d) IN (6, 7)
-FROM generate_series('2020-01-01'::timestamp, '2030-12-31'::timestamp, interval '1 day') AS d
+FROM generate_series('2020-01-01'::timestamp, '2035-12-31'::timestamp, interval '1 day') AS d
 ON CONFLICT (data_key) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS @ANA@.dim_orgao (

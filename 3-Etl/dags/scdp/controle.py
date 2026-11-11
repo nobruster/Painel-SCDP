@@ -20,6 +20,21 @@ class Controle:
         self.cur.execute("SELECT ida_mes, retorno_mes, status, qtd_api, fim FROM @STG@.ctl_janela WHERE orgao=%s", (self.orgao,))
         return {(r[0], r[1]): dict(status=r[2], qtd_api=r[3], fim=r[4]) for r in self.cur.fetchall()}
 
+    def para_orgao(self, orgao: str) -> "Controle":
+        """Controle de outro orgao sobre o mesmo cursor, conexao e execucao."""
+        if orgao == self.orgao:
+            return self
+        outro = Controle(self.cur, self.conn, orgao, self.sanitizar)
+        outro.execucao_id = self.execucao_id
+        return outro
+
+    def qtd_anterior(self, ida, ret) -> Optional[int]:
+        """qtd_api da ultima leitura da janela; None se nunca foi lida."""
+        self.cur.execute("SELECT qtd_api FROM @STG@.ctl_janela WHERE orgao=%s AND ida_mes=%s AND retorno_mes=%s",
+                         (self.orgao, ida, ret))
+        linha = self.cur.fetchone()
+        return linha[0] if linha else None
+
     def iniciar_janela(self, ida, ret) -> None:
         self.cur.execute(
             """INSERT INTO @STG@.ctl_janela (orgao, ida_mes, retorno_mes, status, tentativas, inicio)

@@ -1,0 +1,56 @@
+[
+  {
+    "nome": "mes_0_agosto_2026",
+    "descricao": "ida e retorno no mesmo mes; CLAUDE.md: ago/2026 no MPS = 142 viagens em 10 paginas",
+    "ida_de": "01/08/2026", "ida_ate": "31/08/2026", "ret_de": "01/08/2026", "ret_ate": "31/08/2026",
+    "esperado": {"resultado": "ok", "contagem": 142}
+  },
+  {
+    "nome": "mes_0_marco_2026",
+    "descricao": "ida e retorno no mesmo mes",
+    "ida_de": "01/03/2026", "ida_ate": "31/03/2026", "ret_de": "01/03/2026", "ret_ate": "31/03/2026",
+    "esperado": {"resultado": "ok", "contagem": null}
+  },
+  {
+    "nome": "mes_mais_1_marco_abril_2026",
+    "descricao": "ida em marco, retorno em abril (viagem que cruza o mes)",
+    "ida_de": "01/03/2026", "ida_ate": "31/03/2026", "ret_de": "01/04/2026", "ret_ate": "30/04/2026",
+    "esperado": {"resultado": "ok", "contagem": null}
+  },
+  {
+    "nome": "mes_mais_3_marco_junho_2026",
+    "descricao": "retorno 3 meses depois da ida",
+    "ida_de": "01/03/2026", "ida_ate": "31/03/2026", "ret_de": "01/06/2026", "ret_ate": "30/06/2026",
+    "esperado": {"resultado": "ok", "contagem": null}
+  },
+  {
+    "nome": "mes_mais_12_marco_2026_marco_2027",
+    "descricao": "limite da varredura: retorno 12 meses depois da ida (aceito pela API, pode vir vazio)",
+    "ida_de": "01/03/2026", "ida_ate": "31/03/2026", "ret_de": "01/03/2027", "ret_ate": "31/03/2027",
+    "esperado": {"resultado": "ok", "contagem": null}
+  },
+  {
+    "nome": "dia_unico_04_03_2026",
+    "descricao": "De = Ate e aceito e inclusivo; CLAUDE.md: ida 04/03 a 04/03 devolveu 41 viagens (retorno ate 04/04 e suposicao da janela usada)",
+    "ida_de": "04/03/2026", "ida_ate": "04/03/2026", "ret_de": "04/03/2026", "ret_ate": "04/04/2026",
+    "esperado": {"resultado": "ok", "contagem": 41}
+  },
+  {
+    "nome": "dia_unico_03_03_2026_sem_viagem",
+    "descricao": "CLAUDE.md: 03/03 devolveu 0 e confere com os dados; ainda e 200, nao erro",
+    "ida_de": "03/03/2026", "ida_ate": "03/03/2026", "ret_de": "03/03/2026", "ret_ate": "03/04/2026",
+    "esperado": {"resultado": "ok", "contagem": 0}
+  },
+  {
+    "nome": "semana_09_a_15_03_2026",
+    "descricao": "janela menor que 1 mes funciona",
+    "ida_de": "09/03/2026", "ida_ate": "15/03/2026", "ret_de": "09/03/2026", "ret_ate": "09/04/2026",
+    "esperado": {"resultado": "ok", "contagem": null}
+  },
+  {
+    "nome": "limite_31_dias_01_03_a_01_04",
+    "descricao": "CLAUDE.md: 01/03 a 01/04 (31 dias) e aceito",
+    "ida_de": "01/03/2026", "ida_ate": "01/04/2026", "ret_de": "01/03/2026", "ret_ate": "01/04/2026",
+    "esperado": {"resultado": "ok", "contagem": null}
+  }
+]

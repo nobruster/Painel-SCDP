@@ -16,14 +16,14 @@ Manter uma tabela de staging no banco com **todas** as viagens do(s) órgão(s) 
 
 ## 3. Escopo
 **Dentro:** extração via API `/viagens`, staging, tabelas de controle, execução diária e completa, documentação da API, validação de integridade.
-**Fora (nesta versão):** o painel em si (BI), enriquecimento com dados de servidores, CPF completo, dados de passagens/trechos/pagamentos (ver decisões em aberto, seção 10).
+**Fora (nesta versão):** o painel em si (BI), KPIs e views de KPI (o painel, quando existir, calcula os KPIs a partir de `analitica.obt_viagem`; este projeto não cria `vw_kpi_*`), enriquecimento com dados de servidores, CPF completo, dados de passagens/trechos/pagamentos (ver decisões em aberto, seção 10).
 
 ## 4. Usuários
 - Analistas que consomem a staging/painel.
 - Engenharia de dados que opera a carga (Python hoje; Pentaho como alternativa avaliada).
 
 ## 5. Decisões de escopo em aberto (bloqueiam a carga final)
-1. **Órgãos:** `codigoOrgao` filtra pela entidade, não pelo ministério. No MPS, em ago/2026: `33000` = 142 viagens, INSS `37202` = 1.265, PREVIC `33206` = 22. Definir se o escopo é só `33000` ou o MPS inteiro.
+1. **Órgãos:** `codigoOrgao` filtra pela entidade, não pelo ministério. No MPS, em ago/2026: `33000` = 142 viagens, INSS `37202` = 1.265, PREVIC `33206` = 22. Decisão e implementação (RF11): `1-Documentos/adrs/0001-escopo-de-orgaos.md`.
 2. **Código `308819`:** informado como órgão, mas não existe nas listas SIAFI (766 órgãos) nem SIAPE (641). Origem a confirmar. Nada nos dados carregados o contém.
 3. **API × download em lote:** o portal recomenda as planilhas de dados abertos para o conjunto completo (um download por ano, 2011–2027, 4 arquivos: Viagem, Passagem, Pagamento, Trecho). Os arquivos de passagem, trecho e pagamento não existem na API. Formato, tamanho e encoding ainda não foram verificados.
 
@@ -40,8 +40,11 @@ Manter uma tabela de staging no banco com **todas** as viagens do(s) órgão(s) 
 | RF8 | Detectar e sinalizar viagens antigas que entraram tarde (`TARDIO`, view `vw_ctl_tardios`) | Implementado; cenário de atraso real ainda não exercitado |
 | RF9 | Planejar também os 2 meses futuros, para pegar viagens agendadas | Implementado |
 | RF10 | Retomar de onde parou após falha | Implementado por controle de janela |
-| RF11 | Aceitar lista de órgãos (hoje um só, via `CODIGO_ORGAO`) | **Pendente**, depende da decisão 5.1 |
-| RF12 | Alerta quando houver erro/pendência (código de saída 1; 2 = configuração; 3 = outra execução em andamento) | Implementado como código de saída; alerta a definir |
+| RF11 | Aceitar lista de órgãos (escopo decidido em `1-Documentos/adrs/0001-escopo-de-orgaos.md`) | Implementado (ADR `adrs/0001`; pipeline em `3-Etl/dags/scdp/`, testes `test_orgaos_*`) |
+| RF12 | Alerta quando houver erro/pendência (código de saída 1; 2 = configuração; 3 = outra execução em andamento) | Implementado: código de saída e módulo `scdp/alerta.py` (canal: `adrs/0003-canal-de-alerta.md`) |
+| RF17 | Gate de janelas: queda de contagem de uma janela é relida e gera aviso; `2-Scripts/validar_carga_completa.py` confere a carga e a DAG completa tem tarefa `reconciliar` | Implementado |
+| RF18 | Papel de leitura somente leitura sobre a analítica (`3-Etl/dags/sql/papel_leitura.sql`) | Implementado |
+| RF19 | `COMMENT ON` em todas as tabelas, views e colunas (`schema.sql`) | Implementado |
 | RF13 | Gravar erros em `staging.ctl_erro` (janela, etapa, código, mensagem, tentativas, datas) e removê-los da tabela quando corrigidos, preservando-os em `ctl_erro_historico` | Implementado; testado na base real (ciclo 401 → correção) |
 | RF14 | Tentativas: até 8 por chamada com espera crescente, `Retry-After` em 429, 2 rodadas extras no fim; 400 e 404 não derrubam a carga nem são repetidos nas rodadas extras; 401 e 403 abortam | Implementado |
 | RF15 | Retomar de onde parou: janelas com erro, interrompidas ou pendentes primeiro; execução sem fim vira `INTERROMPIDA` | Implementado |
@@ -162,7 +165,7 @@ Regras: a staging nunca recebe regra de negócio; a intermediária pode ser reco
 |---|---|---|
 | 19/10/2026 | O CPF permanece como a API entrega, mascarado (`***.584.117-**`), em todas as camadas. Não há CPF completo em lugar nenhum e não se tenta reconstruí-lo | A API só fornece o CPF parcial; reduz o risco de LGPD |
 | 19/10/2026 | O campo `motivo` (texto livre) sai da camada analítica (`fct_viagem` e `obt_viagem`). Continua na intermediária (`int_viagem`) e, como veio, no JSON da staging | Texto livre pode conter dado pessoal; a analítica é a camada de consumo |
-| 19/10/2026 | Nome do beneficiário segue na analítica (`dim_beneficiario`, `obt_viagem`) | **Pendente** confirmar (default do Atlas: dado individual fora do gold sem ADR) |
+| 19/10/2026 | Nome do beneficiário segue na analítica (`dim_beneficiario`, `obt_viagem`) | Ver `1-Documentos/adrs/0004-beneficiario-na-analitica.md` |
 
 ## 10.2 Validação do stack por revisão independente (19/10/2026)
 Quatro revisões somente leitura (lógica e arquitetura; segurança e robustez; SQL do PostgreSQL; checagens mecânicas e documentação). O que foi confirmado e corrigido:
@@ -226,7 +229,7 @@ Pendências conhecidas: conciliação que só compara a API com o que acabou de 
 ## 11. Riscos
 | Risco | Mitigação |
 |---|---|
-| Escopo de órgão errado (perder INSS) | Decisão 5.1 antes da carga final |
+| Escopo de órgão errado (perder INSS) | ADR `adrs/0001` e lista de órgãos configurável (RF11) |
 | Registros que chegam com atraso | Releitura diária das janelas recentes e completa a cada 10 dias, com `TARDIO` |
 | Instabilidade da API (504, vazio transitório) | Retry, releitura de janelas com queda de contagem, `ctl_janela` |
 | Suspensão do token por excesso de uso | Uso de 50% do limite, pausa por horário, tratamento de 429 |
@@ -241,4 +244,4 @@ Pendências conhecidas: conciliação que só compara a API com o que acabou de 
 4. **Fase 4:** painel e, se desejado, enriquecimento com `/servidores` (nome + CPF mascarado).
 
 ## 13. Arquivos do projeto
-Padrão de pastas dos demais projetos: `1-Documentos` (PRD, `referencia_api.md`, `referencia/orgaos_siafi.csv` e `orgaos_siape.csv`), `2-Scripts` (`consulta_viagens.py`, `varredura_2026.py`, `postman/`, `saidas/` não versionada), `3-Etl/dags` (DAGs, `carga_viagens.py` como ponto de entrada, pacote `scdp/` com `extracao`, `carga`, `transformacao`, `controle`, `janelas`, `pipeline`, `config` e `cli`, e `sql/schema.sql`), `tests/` (unitários e de integração), `4-DataViz`, `5-Images`. Na raiz: `README.md`, `.env` (segredos, fora do git), `.env.example`, `.gitignore` e `CLAUDE.md` (instruções locais do Claude Code, também fora do git).
+Padrão de pastas dos demais projetos: `1-Documentos` (PRD, `referencia_api.md`, `referencia/orgaos_siafi.csv` e `orgaos_siape.csv`), `2-Scripts` (`consulta_viagens.py`, `varredura_2026.py`, scripts de busca e conferência `testar_janelas_api.py`, `validar_carga_completa.py` e `verificar_reconciliacao.py`, `postman/`, `saidas/` não versionada), `3-Etl/dags` (DAGs, `carga_viagens.py` como ponto de entrada, pacote `scdp/` com `extracao`, `carga`, `transformacao`, `controle`, `janelas`, `pipeline`, `config` e `cli`, e `sql/schema.sql`), `tests/` (unitários e de integração), `4-DataViz`, `5-Images`. Na raiz: `README.md`, `.env` (segredos, fora do git), `.env.example`, `.gitignore` e `CLAUDE.md` (instruções locais do Claude Code, também fora do git).

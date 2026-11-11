@@ -13,11 +13,22 @@ RAIZ = Path(__file__).resolve().parents[3]
 
 OBRIGATORIAS = ("PORTAL_TRANSPARENCIA_BASE_URL", "PORTAL_TRANSPARENCIA_API_KEY", "CODIGO_ORGAO")
 SCHEMA_VALIDO = re.compile(r"[a-z_][a-z0-9_]{0,62}")
+CODIGO_SIAFI = re.compile(r"\d{5}")
 RESERVADOS = {"user", "select", "table", "order", "group", "from", "where", "all", "default", "public_"}
 
 
 class ErroConfiguracao(RuntimeError):
     pass
+
+
+def parse_orgaos(valor: str) -> Tuple[str, ...]:
+    """CODIGO_ORGAO como lista separada por virgula (um unico valor continua valendo); cada codigo e SIAFI de 5 digitos."""
+    codigos = [c.strip() for c in str(valor).split(",")]
+    ruins = [c for c in codigos if not CODIGO_SIAFI.fullmatch(c)]
+    if ruins:
+        raise ErroConfiguracao("CODIGO_ORGAO invalido (esperado codigo SIAFI de 5 digitos, separados por virgula): "
+                               + ", ".join(repr(c) for c in ruins))
+    return tuple(dict.fromkeys(codigos))
 
 
 def carregar_env(caminho: Path) -> None:
@@ -69,6 +80,10 @@ class Config:
         if not self.url_base.startswith("https://"):
             raise ErroConfiguracao("PORTAL_TRANSPARENCIA_BASE_URL precisa usar https:// (a chave vai no cabecalho)")
 
+    @property
+    def orgaos(self) -> Tuple[str, ...]:
+        return tuple(dict.fromkeys(c.strip() for c in self.orgao.split(",") if c.strip()))
+
     def _senhas_da_url(self) -> List[str]:
         if not self.database_url:
             return []
@@ -115,11 +130,12 @@ class Config:
             porta = int(e.get("PGPORT") or 5432)
         except ValueError:
             raise ErroConfiguracao("PGPORT precisa ser um numero") from None
+        orgaos = parse_orgaos(e["CODIGO_ORGAO"])
         stg = e.get("SCHEMA_STG") or "staging"
         return cls(
             url_base=e["PORTAL_TRANSPARENCIA_BASE_URL"].rstrip("/"),
             chave_api=e["PORTAL_TRANSPARENCIA_API_KEY"],
-            orgao=e["CODIGO_ORGAO"],
+            orgao=",".join(orgaos),
             schema_stg=stg,
             schema_int=e.get("SCHEMA_INT") or stg,
             schema_ana=e.get("SCHEMA_ANA") or stg,

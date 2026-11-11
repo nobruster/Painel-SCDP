@@ -19,7 +19,15 @@ def comando_carga(*argumentos: str) -> str:
     return " ".join([python, "-I", script, *[shlex.quote(a) for a in argumentos]])
 
 
-def comando_reconciliacao() -> str:
+def _comando_script(nome: str) -> str:
     python = '"${PAINEL_SCDP_PYTHON:-%s}"' % PYTHON_PADRAO
-    script = '"${PAINEL_SCDP_HOME:-%s}/2-Scripts/verificar_reconciliacao.py"' % RAIZ_PADRAO
+    script = '"${PAINEL_SCDP_HOME:-%s}/2-Scripts/%s"' % (RAIZ_PADRAO, nome)
     return f"{python} -I {script}"
+
+
+def comando_reconciliacao() -> str:
+    return _comando_script("verificar_reconciliacao.py")
+
+
+def comando_validar_janelas() -> str:
+    return _comando_script("validar_carga_completa.py")

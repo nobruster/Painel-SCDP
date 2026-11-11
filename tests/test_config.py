@@ -67,14 +67,14 @@ def test_variaveis_obrigatorias(tmp_path, monkeypatch):
 
 def test_porta_invalida(tmp_path, monkeypatch):
     monkeypatch.setattr(os, "environ", {"PORTAL_TRANSPARENCIA_BASE_URL": "https://x/api", "PORTAL_TRANSPARENCIA_API_KEY": "k",
-                                        "CODIGO_ORGAO": "1", "PGPORT": "abc"})
+                                        "CODIGO_ORGAO": "33000", "PGPORT": "abc"})
     with pytest.raises(ErroConfiguracao):
         Config.do_ambiente(tmp_path / "nao_existe.env")
 
 
 def test_env_do_processo_tem_prioridade_sobre_o_arquivo(tmp_path, monkeypatch):
     arquivo = tmp_path / ".env"
-    arquivo.write_text("PORTAL_TRANSPARENCIA_BASE_URL=https://arquivo/api\nPORTAL_TRANSPARENCIA_API_KEY=do-arquivo\nCODIGO_ORGAO=1\n",
+    arquivo.write_text("PORTAL_TRANSPARENCIA_BASE_URL=https://arquivo/api\nPORTAL_TRANSPARENCIA_API_KEY=do-arquivo\nCODIGO_ORGAO=33000\n",
                        encoding="utf-8")
     monkeypatch.setattr(os, "environ", {"PORTAL_TRANSPARENCIA_API_KEY": "do-processo"})
     c = Config.do_ambiente(arquivo)

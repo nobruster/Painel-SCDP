@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import datetime as dt
 import logging
 import signal
@@ -60,15 +61,19 @@ def main(argv: Optional[List[str]] = None) -> int:
         pass
     desde = args.desde
     hoje = dt.date.today()
-    extrator = ClienteApi(cfg)
+    orgaos = cfg.orgaos
+    por_orgao = lambda cod: ClienteApi(dataclasses.replace(cfg, orgao=cod))  # noqa: E731
+    extrator = por_orgao(orgaos[0])
 
     if args.dry_run:
         total = 0
-        for ida, ret in planejar(desde, hoje, cfg):
-            registros, _ = extrator.buscar(ida, ret)
-            total += len(registros)
-            if registros:
-                log.info("ida %s -> ret %s: %d", f"{ida:%Y-%m}", f"{ret:%Y-%m}", len(registros))
+        for cod in orgaos:
+            extrator = por_orgao(cod)
+            for ida, ret in planejar(desde, hoje, cfg):
+                registros, _ = extrator.buscar(ida, ret)
+                total += len(registros)
+                if registros:
+                    log.info("%sida %s -> ret %s: %d", f"{cod} " if len(orgaos) > 1 else "", f"{ida:%Y-%m}", f"{ret:%Y-%m}", len(registros))
         log.info("TOTAL %d", total)
         return 0
 
@@ -76,7 +81,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     try:
         conn = carga.conectar(cfg)
         cur = conn.cursor()
-        pipeline = Pipeline(cfg, conn, extrator, Controle(cur, conn, cfg.orgao, sanitizar=cfg.sanitizar))
+        pipeline = Pipeline(cfg, conn, extrator, Controle(cur, conn, orgaos[0], sanitizar=cfg.sanitizar),
+                            extrator_por_orgao=por_orgao)
         if args.reconstruir_silver:
             return pipeline.reconstruir()
         return pipeline.executar(args.modo, desde, hoje)
